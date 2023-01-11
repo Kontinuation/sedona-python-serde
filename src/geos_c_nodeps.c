@@ -28,6 +28,8 @@
 
 GEOSContextHandle_t (*pf_GEOS_init_r)();
 void (*pf_GEOS_finish_r)(GEOSContextHandle_t handle);
+int (*pf_GEOSGeomTypeId_r)(GEOSContextHandle_t handle, const GEOSGeometry *g);
+char (*pf_GEOSHasZ_r)(GEOSContextHandle_t handle, const GEOSGeometry *g);
 GEOSGeometry *(*pf_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 
@@ -60,6 +62,8 @@ int load_geos_c_library(const char *path, char *err_msg, int len) {
 int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOS_init_r);
   LOAD_GEOS_FUNCTION(GEOS_finish_r);
+  LOAD_GEOS_FUNCTION(GEOSGeomTypeId_r);
+  LOAD_GEOS_FUNCTION(GEOSHasZ_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
   return 0;
 }
