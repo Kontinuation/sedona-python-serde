@@ -29,7 +29,7 @@ PyDoc_STRVAR(module_doc,
 
 static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   const char *libgeos_c_path = NULL;
-  if (!PyArg_ParseTuple(args, "s", &libgeos_c_path)) {
+  if (!PyArg_ParseTuple(args, "z", &libgeos_c_path)) {
     return NULL;
   }
 

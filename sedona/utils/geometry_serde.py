@@ -15,6 +15,6 @@
 #  specific language governing permissions and limitations
 #  under the License.
 
-from shapely.geometry import Point
+from . import geos_c_loader
 
-
+geos_c_loader.load_geos_c_library()

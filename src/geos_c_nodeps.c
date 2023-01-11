@@ -31,16 +31,15 @@ void (*pf_GEOS_finish_r)(GEOSContextHandle_t handle);
 GEOSGeometry *(*pf_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 
-static void *libgeos_handle;
-
 #define INIT_GEOS_FUNCTION(func)                                               \
-  if (load_geos_c_symbol(#func, (void **)&pf_##func, err_msg, len) != 0) {     \
+  if (load_geos_c_symbol(libgeos_handle, #func, (void **)&pf_##func, err_msg,  \
+                         len) != 0) {                                          \
     return -1;                                                                 \
   }
 
-static int load_geos_c_symbol(const char *func_name, void **pf, char *err_msg,
-                              int len) {
-  void *func = dlsym(libgeos_handle, func_name);
+static int load_geos_c_symbol(void *handle, const char *func_name, void **pf,
+                              char *err_msg, int len) {  
+  void *func = dlsym(handle, func_name);
   if (func == NULL) {
     snprintf(err_msg, len, "%s", dlerror());
     return -1;
@@ -50,12 +49,10 @@ static int load_geos_c_symbol(const char *func_name, void **pf, char *err_msg,
 }
 
 int load_geos_c_library(const char *path, char *err_msg, int len) {
+  void *libgeos_handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
   if (libgeos_handle == NULL) {
-    libgeos_handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
-    if (libgeos_handle == NULL) {
-      snprintf(err_msg, len, "%s", dlerror());
-      return -1;
-    }
+    snprintf(err_msg, len, "%s", dlerror());
+    return -1;
   }
 
   INIT_GEOS_FUNCTION(GEOS_init_r);
