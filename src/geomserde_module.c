@@ -59,6 +59,14 @@ static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   return Py_None;
 }
 
+static GEOSContextHandle_t get_thread_local_geos_context_handle() {
+  static _Thread_local GEOSContextHandle_t handle;
+  if (handle == NULL) {
+    handle = pf_GEOS_init_r();
+  }
+  return handle;
+}
+
 static PyObject *do_serialize(GEOSGeometry *geos_geom) {
   if (geos_geom == NULL) {
     Py_INCREF(Py_None);
@@ -67,9 +75,8 @@ static PyObject *do_serialize(GEOSGeometry *geos_geom) {
 
   char *buf = NULL;
   int buf_size = 0;
-  GEOSContextHandle_t handle = pf_GEOS_init_r();
+  GEOSContextHandle_t handle = get_thread_local_geos_context_handle();
   int err = sedona_serialize_geom(geos_geom, handle, &buf, &buf_size);
-  pf_GEOS_finish_r(handle);
   if (err != SEDONA_SUCCESS) {
     const char *errmsg = sedona_get_error_message(err);
     PyErr_SetString(PyExc_ValueError, errmsg);
@@ -93,11 +100,10 @@ static GEOSGeometry *do_deserialize(PyObject *args,
   const char *buf = view.buf;
   int buf_size = view.len;
   GEOSGeometry *geom = NULL;
-  GEOSContextHandle_t handle = pf_GEOS_init_r();
+  GEOSContextHandle_t handle = get_thread_local_geos_context_handle();
   int err = sedona_deserialize_geom(buf, buf_size, handle, &geom);
   PyBuffer_Release(&view);
   if (err != SEDONA_SUCCESS) {
-    pf_GEOS_finish_r(handle);
     const char *errmsg = sedona_get_error_message(err);
     PyErr_SetString(PyExc_ValueError, errmsg);
     return NULL;
@@ -134,7 +140,6 @@ static PyObject *deserialize(PyObject *self, PyObject *args) {
     return NULL;
   }
   PyObject *pygeom = PyGEOS_CreateGeometry(geom, handle);
-  pf_GEOS_finish_r(handle);
   return pygeom;
 }
 
@@ -160,7 +165,6 @@ static PyObject *deserialize_1(PyObject *self, PyObject *args) {
    * to get rid of the extra overhead introduced by ctypes. */
   int geom_type_id = pf_GEOSGeomTypeId_r(handle, geom);
   char has_z = pf_GEOSHasZ_r(handle, geom);
-  pf_GEOS_finish_r(handle);
   return Py_BuildValue("(lib)", geom, geom_type_id, has_z);
 }
 
