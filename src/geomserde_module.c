@@ -28,14 +28,30 @@ PyDoc_STRVAR(module_doc,
              "Geometry serialization module for GeometryType in PySpark SQL.");
 
 static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
-  const char *libgeos_c_path = NULL;
-  if (!PyArg_ParseTuple(args, "z", &libgeos_c_path)) {
+  PyObject *obj;
+  char err_msg[256];
+  if (!PyArg_ParseTuple(args, "O", &obj)) {
     return NULL;
   }
 
-  char err_msg[256];
-  if (load_geos_c_library(libgeos_c_path, err_msg, sizeof(err_msg)) != 0) {
-    PyErr_Format(PyExc_RuntimeError, "Failed to find libgeos_c functions: %s", err_msg);
+  if (PyLong_Check(obj)) {
+    long handle = PyLong_AsLong(obj);
+    if (load_geos_c_from_handle((void *)handle, err_msg, sizeof(err_msg)) !=
+        0) {
+      PyErr_Format(PyExc_RuntimeError, "Failed to find libgeos_c functions: %s",
+                   err_msg);
+      return NULL;
+    }
+  } else if (PyUnicode_Check(obj)) {
+    const char *libname = PyUnicode_AsUTF8(obj);
+    if (load_geos_c_library(libname, err_msg, sizeof(err_msg)) != 0) {
+      PyErr_Format(PyExc_RuntimeError, "Failed to find libgeos_c functions: %s",
+                   err_msg);
+      return NULL;
+    }
+  } else {
+    PyErr_SetString(PyExc_TypeError,
+                    "load_libgeos_c expects a string or long argument");
     return NULL;
   }
 

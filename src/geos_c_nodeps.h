@@ -46,6 +46,19 @@ typedef struct GEOSContextHandle *GEOSContextHandle_t;
  */
 extern int load_geos_c_library(const char *path, char *err_msg, int len);
 
+/**
+ * Load GEOS C functions from specified (platform-specific) library handle
+ *
+ * This function is similar to `load_geos_c_library`. The only exception is
+ * that it does not load the libgeos_c library from file.
+ *
+ * @param handle platform-specific handle to load functions from
+ * @param err_msg buffer for receiving error message in case of errors
+ * @param len length of the error message buffer
+ * @return 0 when GEOS functions were loaded correctly, otherwise returns a non-zero value
+ */
+extern int load_geos_c_from_handle(void *handle, char *err_msg, int len);
+
 /* The following are function pointers to GEOS C APIs provided by
  * libgeos_c. These functions must be called after a successful invocation of
  * `load_geos_c_functions` */

@@ -31,9 +31,9 @@ void (*pf_GEOS_finish_r)(GEOSContextHandle_t handle);
 GEOSGeometry *(*pf_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 
-#define INIT_GEOS_FUNCTION(func)                                               \
-  if (load_geos_c_symbol(libgeos_handle, #func, (void **)&pf_##func, err_msg,  \
-                         len) != 0) {                                          \
+#define LOAD_GEOS_FUNCTION(func)                                               \
+  if (load_geos_c_symbol(handle, #func, (void **)&pf_##func, err_msg, len) !=  \
+      0) {                                                                     \
     return -1;                                                                 \
   }
 
@@ -49,14 +49,17 @@ static int load_geos_c_symbol(void *handle, const char *func_name, void **pf,
 }
 
 int load_geos_c_library(const char *path, char *err_msg, int len) {
-  void *libgeos_handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
-  if (libgeos_handle == NULL) {
+  void *handle = dlopen(path, RTLD_LOCAL | RTLD_NOW);
+  if (handle == NULL) {
     snprintf(err_msg, len, "%s", dlerror());
     return -1;
   }
+  return load_geos_c_from_handle(handle, err_msg, len);
+}
 
-  INIT_GEOS_FUNCTION(GEOS_init_r);
-  INIT_GEOS_FUNCTION(GEOS_finish_r);
-  INIT_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
+int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
+  LOAD_GEOS_FUNCTION(GEOS_init_r);
+  LOAD_GEOS_FUNCTION(GEOS_finish_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
   return 0;
 }
