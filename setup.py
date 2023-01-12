@@ -32,8 +32,8 @@ if os.getenv('ENABLE_ASAN'):
     }
 
 ext_modules = [
-    Extension('sedona.utils.geomserde', sources=[
-        'src/geomserde_module.c',
+    Extension('sedona.utils.geomserde_speedup', sources=[
+        'src/geomserde_speedup_module.c',
         'src/geomserde.c',
         'src/geos_c_nodeps.c'
     ], **extension_args)

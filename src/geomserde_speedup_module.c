@@ -180,7 +180,7 @@ static PyMethodDef geomserde_methods_shapely_2[] = {
 };
 
 static struct PyModuleDef geomserde_module_shapely_2 = {
-    PyModuleDef_HEAD_INIT, "geomserde", module_doc, 0,
+    PyModuleDef_HEAD_INIT, "geomserde_speedup", module_doc, 0,
     geomserde_methods_shapely_2};
 
 /* Module definition for Shapely 1.x */
@@ -195,10 +195,10 @@ static PyMethodDef geomserde_methods_shapely_1[] = {
 };
 
 static struct PyModuleDef geomserde_module_shapely_1 = {
-    PyModuleDef_HEAD_INIT, "geomserde", module_doc, 0,
+    PyModuleDef_HEAD_INIT, "geomserde_speedup", module_doc, 0,
     geomserde_methods_shapely_1};
 
-PyMODINIT_FUNC PyInit_geomserde(void) {
+PyMODINIT_FUNC PyInit_geomserde_speedup(void) {
   if (import_shapely_c_api() != 0) {
     /* As long as the capsule provided by Shapely 2.0 cannot be loaded, we
      * assume that we're working with Shapely 1.0 */
