@@ -35,7 +35,7 @@ ext_modules = [
     Extension('sedona.utils.geomserde_speedup', sources=[
         'src/geomserde_speedup_module.c',
         'src/geomserde.c',
-        'src/geos_c_nodeps.c'
+        'src/geos_c_dyn.c'
     ], **extension_args)
 ]
 

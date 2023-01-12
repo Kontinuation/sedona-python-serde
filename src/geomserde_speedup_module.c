@@ -20,16 +20,19 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include "geomserde.h"
-#include "pygeos/c_api.h"
-#include "geos_c_nodeps.h"
+#include <stdio.h>
 
-PyDoc_STRVAR(module_doc,
-             "Geometry serialization module for GeometryType in PySpark SQL.");
+#include "geomserde.h"
+#include "geos_c_dyn.h"
+#include "pygeos/c_api.h"
+
+PyDoc_STRVAR(module_doc, "Geometry serialization/deserialization module.");
+
+#define ERR_MSG_BUF_SIZE 1024
 
 static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   PyObject *obj;
-  char err_msg[256];
+  char err_msg[ERR_MSG_BUF_SIZE];
   if (!PyArg_ParseTuple(args, "O", &obj)) {
     return NULL;
   }
@@ -59,12 +62,53 @@ static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   return Py_None;
 }
 
-static GEOSContextHandle_t get_thread_local_geos_context_handle() {
-  static _Thread_local GEOSContextHandle_t handle;
+static _Thread_local GEOSContextHandle_t handle;
+static _Thread_local char *geos_err_msg;
+
+static void geos_msg_handler(const char *fmt, ...) {
+  if (geos_err_msg == NULL)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+  vsnprintf(geos_err_msg, ERR_MSG_BUF_SIZE, fmt, ap);
+  va_end(ap);
+}
+
+static GEOSContextHandle_t get_geos_context_handle() {
   if (handle == NULL) {
-    handle = pf_GEOS_init_r();
+    if (!is_geos_c_loaded()) {      
+      PyErr_SetString(
+          PyExc_RuntimeError,
+          "libgeos_c was not loaded, please call load_libgeos_c first");
+      return NULL;
+    }    
+    
+    handle = dyn_GEOS_init_r();
+    if (handle == NULL) {
+      goto oom_failure;
+    }
+    geos_err_msg = malloc(ERR_MSG_BUF_SIZE);
+    if (geos_err_msg == NULL) {
+      goto oom_failure;
+    }
+    dyn_GEOSContext_setErrorHandler_r(handle, geos_msg_handler);
   }
+  
+  geos_err_msg[0] = '\0';
   return handle;
+
+oom_failure:
+  PyErr_NoMemory();
+  if (handle != NULL) {
+    dyn_GEOS_finish_r(handle);
+    handle = NULL;
+  }
+  if (geos_err_msg != NULL) {
+    free(geos_err_msg);
+    geos_err_msg = NULL;
+  }
+  return NULL;
 }
 
 static PyObject *do_serialize(GEOSGeometry *geos_geom) {
@@ -73,13 +117,17 @@ static PyObject *do_serialize(GEOSGeometry *geos_geom) {
     return Py_None;
   }
 
+  GEOSContextHandle_t handle = get_geos_context_handle();
+  if (handle == NULL) {
+    return NULL;
+  }
+
   char *buf = NULL;
   int buf_size = 0;
-  GEOSContextHandle_t handle = get_thread_local_geos_context_handle();
   int err = sedona_serialize_geom(geos_geom, handle, &buf, &buf_size);
   if (err != SEDONA_SUCCESS) {
     const char *errmsg = sedona_get_error_message(err);
-    PyErr_SetString(PyExc_ValueError, errmsg);
+    PyErr_Format(PyExc_ValueError, "%s (geos error: %s)", errmsg, geos_err_msg);
     return NULL;
   }
 
@@ -95,17 +143,21 @@ static GEOSGeometry *do_deserialize(PyObject *args,
     return NULL;
   }
 
+  GEOSContextHandle_t handle = get_geos_context_handle();
+  if (handle == NULL) {
+    return NULL;
+  }
+
   /* The Py_buffer filled by PyArg_ParseTuple is guaranteed to be C-contiguous,
    * so we can simply proceed with view.buf and view.len */
   const char *buf = view.buf;
   int buf_size = view.len;
   GEOSGeometry *geom = NULL;
-  GEOSContextHandle_t handle = get_thread_local_geos_context_handle();
   int err = sedona_deserialize_geom(buf, buf_size, handle, &geom);
   PyBuffer_Release(&view);
   if (err != SEDONA_SUCCESS) {
     const char *errmsg = sedona_get_error_message(err);
-    PyErr_SetString(PyExc_ValueError, errmsg);
+    PyErr_Format(PyExc_ValueError, "%s (geos error: %s)", errmsg, geos_err_msg);
     return NULL;
   }
 
@@ -163,8 +215,8 @@ static PyObject *deserialize_1(PyObject *self, PyObject *args) {
   /* These functions would be called by Shapely using ctypes when constructing
    * a Shapely BaseGeometry object from GEOSGeometry pointer. We call them here
    * to get rid of the extra overhead introduced by ctypes. */
-  int geom_type_id = pf_GEOSGeomTypeId_r(handle, geom);
-  char has_z = pf_GEOSHasZ_r(handle, geom);
+  int geom_type_id = dyn_GEOSGeomTypeId_r(handle, geom);
+  char has_z = dyn_GEOSHasZ_r(handle, geom);
   return Py_BuildValue("(lib)", geom, geom_type_id, has_z);
 }
 

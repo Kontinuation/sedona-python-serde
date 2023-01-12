@@ -19,7 +19,7 @@
 #define _PYGEOS_API_H
 
 #include <Python.h>
-#include "../geos_c_nodeps.h"
+#include "../geos_c_dyn.h"
 
 /* PyObject* PyGEOS_CreateGeometry(GEOSGeometry *ptr, GEOSContextHandle_t ctx) */
 #define PyGEOS_CreateGeometry_NUM 0

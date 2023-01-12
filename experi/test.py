@@ -21,6 +21,7 @@ print(p, type(p))
 
 print(isinstance(p, Point))
 b = geometry_serde.serialize(p)
-print(b)
-b = geometry_serde.serialize(Polygon([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]))
-print(b)
+print(b, len(b))
+
+# b = geometry_serde.serialize(Polygon([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]))
+# print(b)

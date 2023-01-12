@@ -20,12 +20,18 @@
 #ifndef GEOM_SERDE
 #define GEOM_SERDE
 
-#include "geos_c_nodeps.h"
+#include "geos_c_dyn.h"
 
 /**
  * Error code for internal APIs of the sedona python extension module.
  */
-enum SedonaErrorCode { SEDONA_SUCCESS = 0 };
+enum SedonaErrorCode {
+  SEDONA_SUCCESS,
+  SEDONA_UNKNOWN_GEOM_TYPE,
+  SEDONA_UNSUPPORTED_GEOM_TYPE,
+  SEDONA_GEOS_ERROR,
+  SEDONA_ALLOC_ERROR,
+};
 
 /**
  * Converts error code to human readable error message

@@ -77,21 +77,23 @@ try:
                 return None
             g, geom_type_id, has_z = geomserde_speedup.deserialize_1(buf)
 
-            # The following code is mostly taken from the geom_factory function in
-            # shapely/geometry/base.py, with a few tweaks to eliminate invocations
-            # to GEOS functions.
+            # The following code is mostly taken from the geom_factory function
+            # in shapely/geometry/base.py, with a few tweaks to eliminate
+            # invocations to GEOS functions. We've also replaced direct
+            # attribute reference with __dict__['attr'] to get rid of the extra
+            # cost of __setattr__ in shapely 1.8.
             if not g:
                 raise ValueError("No Shapely geometry can be created from null value")
             ob = BaseGeometry()
             geom_type = shapely.geometry.base.GEOMETRY_TYPES[geom_type_id]
             ob.__class__ = GEOMETRY_CLASSES[geom_type_id]
-            ob._set_geom(g)
-            ob.__p__ = None
+            ob.__dict__['__geom__'] = g
+            ob.__dict__['__p__'] = None
             if has_z != 0:
-                ob._ndim = 3
+                ob.__dict__['_ndim'] = 3
             else:
-                ob._ndim = 2
-            ob._is_empty = False
+                ob.__dict__['_ndim'] = 2
+            ob.__dict__['_is_empty'] = False
             return ob
 
     else:
