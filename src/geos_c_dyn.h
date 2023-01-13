@@ -128,6 +128,16 @@ extern int (*dyn_GEOSCoordSeq_setXYZ_r)(GEOSContextHandle_t handle,
                                         GEOSCoordSequence *s, unsigned int idx,
                                         double x, double y, double z);
 
+extern const GEOSGeometry *(*dyn_GEOSGetExteriorRing_r)(GEOSContextHandle_t handle,
+                                                    const GEOSGeometry *g);
+
+extern int (*dyn_GEOSGetNumInteriorRings_r)(GEOSContextHandle_t handle,
+                                            const GEOSGeometry *g);
+
+extern const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(GEOSContextHandle_t handle,
+                                                     const GEOSGeometry *g,
+                                                     int n);
+
 extern GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 

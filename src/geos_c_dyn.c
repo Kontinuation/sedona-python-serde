@@ -77,6 +77,15 @@ int (*dyn_GEOSCoordSeq_setXYZ_r)(GEOSContextHandle_t handle,
                                  GEOSCoordSequence *s, unsigned int idx,
                                  double x, double y, double z);
 
+const GEOSGeometry *(*dyn_GEOSGetExteriorRing_r)(GEOSContextHandle_t handle,
+                                                 const GEOSGeometry *g);
+
+int (*dyn_GEOSGetNumInteriorRings_r)(GEOSContextHandle_t handle,
+                                     const GEOSGeometry *g);
+
+const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(GEOSContextHandle_t handle,
+                                                  const GEOSGeometry *g, int n);
+
 GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(GEOSContextHandle_t handle,
                                                   double x, double y);
 
@@ -124,6 +133,9 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSCoordSeq_getXYZ_r);
   LOAD_GEOS_FUNCTION(GEOSCoordSeq_setXY_r);
   LOAD_GEOS_FUNCTION(GEOSCoordSeq_setXYZ_r);
+  LOAD_GEOS_FUNCTION(GEOSGetExteriorRing_r);
+  LOAD_GEOS_FUNCTION(GEOSGetNumInteriorRings_r);
+  LOAD_GEOS_FUNCTION(GEOSGetInteriorRingN_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
 
   /* These functions are not mandantory, only libgeos (>=3.10.0) bundled with

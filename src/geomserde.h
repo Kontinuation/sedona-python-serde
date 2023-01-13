@@ -44,26 +44,25 @@ extern const char *sedona_get_error_message(int err);
 /**
  * Serializes a GEOS geometry object as a binary buffer
  *
- * @param geom The GEOS geometry object to serialize
  * @param handle the GEOS context handle
+ * @param geom The GEOS geometry object to serialize
  * @param p_buf OUTPUT parameter for receiving the pointer to buffer
  * @param p_buf_size OUTPUT parameter for receiving size of the buffer
  * @return error code
  */
-extern int sedona_serialize_geom(GEOSGeometry *geom, GEOSContextHandle_t handle,
+extern int sedona_serialize_geom(GEOSContextHandle_t handle, GEOSGeometry *geom,
                                  char **p_buf, int *p_buf_size);
 
 /**
  * Deserializes a serialized geometry to a GEOS geometry object
  *
+ * @param handle GEOS context handle
  * @param buf buffer containing serialized geometry
  * @param buf_size size of the buffer
- * @param handle GEOS context handle
  * @param p_geom OUTPUT parameter for receiving deserialized GEOS geometry
  * @return error code
  */
-extern int sedona_deserialize_geom(const char *buf, int buf_size,
-                                   GEOSContextHandle_t handle,
-                                   GEOSGeometry **p_geom);
+extern int sedona_deserialize_geom(GEOSContextHandle_t handle, const char *buf,
+                                   int buf_size, GEOSGeometry **p_geom);
 
 #endif /* GEOM_SERDE */
