@@ -53,7 +53,8 @@ extern int is_geos_c_loaded();
  * @param path path to the libgeos_c library
  * @param err_msg buffer for receiving error message in case of errors
  * @param len length of the error message buffer
- * @return 0 when GEOS functions were loaded correctly, otherwise returns a non-zero value
+ * @return 0 when GEOS functions were loaded correctly, otherwise returns a
+ * non-zero value
  */
 extern int load_geos_c_library(const char *path, char *err_msg, int len);
 
@@ -66,7 +67,8 @@ extern int load_geos_c_library(const char *path, char *err_msg, int len);
  * @param handle platform-specific handle to load functions from
  * @param err_msg buffer for receiving error message in case of errors
  * @param len length of the error message buffer
- * @return 0 when GEOS functions were loaded correctly, otherwise returns a non-zero value
+ * @return 0 when GEOS functions were loaded correctly, otherwise returns a
+ * non-zero value
  */
 extern int load_geos_c_from_handle(void *handle, char *err_msg, int len);
 
@@ -87,10 +89,11 @@ extern int (*dyn_GEOSGeomTypeId_r)(GEOSContextHandle_t handle,
 extern char (*dyn_GEOSHasZ_r)(GEOSContextHandle_t handle,
                               const GEOSGeometry *g);
 
-extern int (*dyn_GEOSGetSRID_r)(GEOSContextHandle_t handle, const GEOSGeometry *g);
+extern int (*dyn_GEOSGetSRID_r)(GEOSContextHandle_t handle,
+                                const GEOSGeometry *g);
 
 extern void (*dyn_GEOSSetSRID_r)(GEOSContextHandle_t handle, GEOSGeometry *g,
-                             int SRID);
+                                 int SRID);
 
 extern const GEOSCoordSequence *(*dyn_GEOSGeom_getCoordSeq_r)(
     GEOSContextHandle_t handle, const GEOSGeometry *g);
@@ -128,29 +131,34 @@ extern int (*dyn_GEOSCoordSeq_setXYZ_r)(GEOSContextHandle_t handle,
                                         GEOSCoordSequence *s, unsigned int idx,
                                         double x, double y, double z);
 
-extern const GEOSGeometry *(*dyn_GEOSGetExteriorRing_r)(GEOSContextHandle_t handle,
-                                                    const GEOSGeometry *g);
+extern const GEOSGeometry *(*dyn_GEOSGetExteriorRing_r)(
+    GEOSContextHandle_t handle, const GEOSGeometry *g);
 
 extern int (*dyn_GEOSGetNumInteriorRings_r)(GEOSContextHandle_t handle,
                                             const GEOSGeometry *g);
 
-extern const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(GEOSContextHandle_t handle,
-                                                     const GEOSGeometry *g,
-                                                     int n);
+extern int (*dyn_GEOSGetNumCoordinates_r)(GEOSContextHandle_t handle,
+                                          const GEOSGeometry *g);
+
+extern int (*dyn_GEOSGeom_getCoordinateDimension_r)(GEOSContextHandle_t handle,
+                                                    const GEOSGeometry *g);
+
+extern const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(
+    GEOSContextHandle_t handle, const GEOSGeometry *g, int n);
 
 extern GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 
 /* Supported geometry types */
 enum GEOSGeomTypes {
-    GEOS_POINT,
-    GEOS_LINESTRING,
-    GEOS_LINEARRING,
-    GEOS_POLYGON,
-    GEOS_MULTIPOINT,
-    GEOS_MULTILINESTRING,
-    GEOS_MULTIPOLYGON,
-    GEOS_GEOMETRYCOLLECTION
+  GEOS_POINT,
+  GEOS_LINESTRING,
+  GEOS_LINEARRING,
+  GEOS_POLYGON,
+  GEOS_MULTIPOINT,
+  GEOS_MULTILINESTRING,
+  GEOS_MULTIPOLYGON,
+  GEOS_GEOMETRYCOLLECTION
 };
 
 #endif /* GEOS_C_NODEPS */

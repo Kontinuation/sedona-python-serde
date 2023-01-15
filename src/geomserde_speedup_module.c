@@ -19,7 +19,6 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-
 #include <stdio.h>
 
 #include "geomserde.h"
@@ -66,8 +65,7 @@ static _Thread_local GEOSContextHandle_t handle;
 static _Thread_local char *geos_err_msg;
 
 static void geos_msg_handler(const char *fmt, ...) {
-  if (geos_err_msg == NULL)
-    return;
+  if (geos_err_msg == NULL) return;
   va_list ap;
   va_start(ap, fmt);
   vprintf(fmt, ap);
@@ -77,13 +75,13 @@ static void geos_msg_handler(const char *fmt, ...) {
 
 static GEOSContextHandle_t get_geos_context_handle() {
   if (handle == NULL) {
-    if (!is_geos_c_loaded()) {      
+    if (!is_geos_c_loaded()) {
       PyErr_SetString(
           PyExc_RuntimeError,
           "libgeos_c was not loaded, please call load_libgeos_c first");
       return NULL;
-    }    
-    
+    }
+
     handle = dyn_GEOS_init_r();
     if (handle == NULL) {
       goto oom_failure;
@@ -94,7 +92,7 @@ static GEOSContextHandle_t get_geos_context_handle() {
     }
     dyn_GEOSContext_setErrorHandler_r(handle, geos_msg_handler);
   }
-  
+
   geos_err_msg[0] = '\0';
   return handle;
 
@@ -111,6 +109,22 @@ oom_failure:
   return NULL;
 }
 
+static void handle_geomserde_error(SedonaErrorCode err) {
+  const char *errmsg = sedona_get_error_message(err);
+  if (err == SEDONA_ALLOC_ERROR) {
+    PyErr_NoMemory();
+  } else if (err == SEDONA_INTERNAL_ERROR) {
+    PyErr_Format(PyExc_RuntimeError, "%s", errmsg);
+  } else if (err == SEDONA_GEOS_ERROR) {
+    const char *errmsg = sedona_get_error_message(err);
+    PyErr_Format(PyExc_RuntimeError, "%s (geos error: %s)", errmsg,
+                 geos_err_msg);
+  } else {
+    const char *errmsg = sedona_get_error_message(err);
+    PyErr_Format(PyExc_ValueError, "%s", errmsg);
+  }
+}
+
 static PyObject *do_serialize(GEOSGeometry *geos_geom) {
   if (geos_geom == NULL) {
     Py_INCREF(Py_None);
@@ -124,14 +138,10 @@ static PyObject *do_serialize(GEOSGeometry *geos_geom) {
 
   char *buf = NULL;
   int buf_size = 0;
-  int err = sedona_serialize_geom(handle, geos_geom, &buf, &buf_size);
+  SedonaErrorCode err =
+      sedona_serialize_geom(handle, geos_geom, &buf, &buf_size);
   if (err != SEDONA_SUCCESS) {
-    if (err == SEDONA_ALLOC_ERROR) {
-      PyErr_NoMemory();
-    } else {
-      const char *errmsg = sedona_get_error_message(err);
-      PyErr_Format(PyExc_ValueError, "%s (geos error: %s)", errmsg, geos_err_msg);
-    }
+    handle_geomserde_error(err);
     return NULL;
   }
 
@@ -157,15 +167,10 @@ static GEOSGeometry *do_deserialize(PyObject *args,
   const char *buf = view.buf;
   int buf_size = view.len;
   GEOSGeometry *geom = NULL;
-  int err = sedona_deserialize_geom(handle, buf, buf_size, &geom);
+  SedonaErrorCode err = sedona_deserialize_geom(handle, buf, buf_size, &geom);
   PyBuffer_Release(&view);
   if (err != SEDONA_SUCCESS) {
-    if (err == SEDONA_ALLOC_ERROR) {
-      PyErr_NoMemory();
-    } else {
-      const char *errmsg = sedona_get_error_message(err);
-      PyErr_Format(PyExc_ValueError, "%s (geos error: %s)", errmsg, geos_err_msg);
-    }
+    handle_geomserde_error(err);
     return NULL;
   }
 

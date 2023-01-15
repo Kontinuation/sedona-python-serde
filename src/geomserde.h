@@ -25,13 +25,16 @@
 /**
  * Error code for internal APIs of the sedona python extension module.
  */
-enum SedonaErrorCode {
+typedef enum SedonaErrorCode {
   SEDONA_SUCCESS,
   SEDONA_UNKNOWN_GEOM_TYPE,
+  SEDONA_UNKNOWN_COORD_TYPE,
   SEDONA_UNSUPPORTED_GEOM_TYPE,
+  SEDONA_INVALID_ARG_ERROR,
   SEDONA_GEOS_ERROR,
   SEDONA_ALLOC_ERROR,
-};
+  SEDONA_INTERNAL_ERROR,
+} SedonaErrorCode;
 
 /**
  * Converts error code to human readable error message
@@ -50,8 +53,9 @@ extern const char *sedona_get_error_message(int err);
  * @param p_buf_size OUTPUT parameter for receiving size of the buffer
  * @return error code
  */
-extern int sedona_serialize_geom(GEOSContextHandle_t handle, GEOSGeometry *geom,
-                                 char **p_buf, int *p_buf_size);
+extern SedonaErrorCode sedona_serialize_geom(GEOSContextHandle_t handle,
+                                             GEOSGeometry *geom, char **p_buf,
+                                             int *p_buf_size);
 
 /**
  * Deserializes a serialized geometry to a GEOS geometry object
@@ -62,7 +66,8 @@ extern int sedona_serialize_geom(GEOSContextHandle_t handle, GEOSGeometry *geom,
  * @param p_geom OUTPUT parameter for receiving deserialized GEOS geometry
  * @return error code
  */
-extern int sedona_deserialize_geom(GEOSContextHandle_t handle, const char *buf,
-                                   int buf_size, GEOSGeometry **p_geom);
+extern SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
+                                               const char *buf, int buf_size,
+                                               GEOSGeometry **p_geom);
 
 #endif /* GEOM_SERDE */

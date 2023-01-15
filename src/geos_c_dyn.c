@@ -20,11 +20,11 @@
 #define _GNU_SOURCE
 #include "geos_c_dyn.h"
 
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
 #include <dlfcn.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 GEOSContextHandle_t (*dyn_GEOS_init_r)();
 
@@ -86,17 +86,23 @@ int (*dyn_GEOSGetNumInteriorRings_r)(GEOSContextHandle_t handle,
 const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(GEOSContextHandle_t handle,
                                                   const GEOSGeometry *g, int n);
 
+int (*dyn_GEOSGetNumCoordinates_r)(GEOSContextHandle_t handle,
+                                   const GEOSGeometry *g);
+
+int (*dyn_GEOSGeom_getCoordinateDimension_r)(GEOSContextHandle_t handle,
+                                             const GEOSGeometry *g);
+
 GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(GEOSContextHandle_t handle,
                                                   double x, double y);
 
 #define LOAD_GEOS_FUNCTION(func)                                               \
-  if (load_geos_c_symbol(handle, #func, (void **)&dyn_##func, err_msg, len) !=  \
+  if (load_geos_c_symbol(handle, #func, (void **)&dyn_##func, err_msg, len) != \
       0) {                                                                     \
     return -1;                                                                 \
   }
 
-static int load_geos_c_symbol(void *handle, const char *func_name, void **p_func,
-                              char *err_msg, int len) {  
+static int load_geos_c_symbol(void *handle, const char *func_name,
+                              void **p_func, char *err_msg, int len) {
   void *func = dlsym(handle, func_name);
   if (func == NULL) {
     snprintf(err_msg, len, "%s", dlerror());
@@ -115,13 +121,11 @@ int load_geos_c_library(const char *path, char *err_msg, int len) {
   return load_geos_c_from_handle(handle, err_msg, len);
 }
 
-int is_geos_c_loaded() {
-  return (dyn_GEOS_init_r != NULL)? 1: 0;
-}
+int is_geos_c_loaded() { return (dyn_GEOS_init_r != NULL) ? 1 : 0; }
 
 int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
-  LOAD_GEOS_FUNCTION(GEOS_finish_r);  
-  LOAD_GEOS_FUNCTION(GEOSContext_setErrorHandler_r);  
+  LOAD_GEOS_FUNCTION(GEOS_finish_r);
+  LOAD_GEOS_FUNCTION(GEOSContext_setErrorHandler_r);
   LOAD_GEOS_FUNCTION(GEOSGeomTypeId_r);
   LOAD_GEOS_FUNCTION(GEOSHasZ_r);
   LOAD_GEOS_FUNCTION(GEOSGetSRID_r);
@@ -136,6 +140,8 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSGetExteriorRing_r);
   LOAD_GEOS_FUNCTION(GEOSGetNumInteriorRings_r);
   LOAD_GEOS_FUNCTION(GEOSGetInteriorRingN_r);
+  LOAD_GEOS_FUNCTION(GEOSGetNumCoordinates_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_getCoordinateDimension_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
 
   /* These functions are not mandantory, only libgeos (>=3.10.0) bundled with
@@ -143,7 +149,7 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   dyn_GEOSCoordSeq_copyFromBuffer_r =
       dlsym(handle, "GEOSCoordSeq_copyFromBuffer_r");
   dyn_GEOSCoordSeq_copyToBuffer_r =
-      dlsym(handle, "GEOSCoordSeq_copyToBuffer_r");  
+      dlsym(handle, "GEOSCoordSeq_copyToBuffer_r");
 
   /* Deliberately load GEOS_init_r after all other functions, so that we can
    * check if all functions were loaded by checking if GEOS_init_r was
