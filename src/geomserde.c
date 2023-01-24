@@ -195,16 +195,16 @@ static SedonaErrorCode copy_coord_seq_to_buffer(
   return SEDONA_SUCCESS;
 }
 
-typedef struct SerializedGeomBuffer {
+typedef struct GeomBuffer {
   void *buf;
   int buf_size;
   double *buf_coord;
   double *buf_coord_end;
   int *buf_int;
   int *buf_int_end;
-} SerializedGeomBuffer;
+} GeomBuffer;
 
-static void geom_buf_init(SerializedGeomBuffer *geom_buf, void *buf,
+static void geom_buf_init(GeomBuffer *geom_buf, void *buf,
                           const CoordinateSequenceInfo *cs_info, int num_coords,
                           int num_ints) {
   geom_buf->buf = buf;
@@ -215,7 +215,7 @@ static void geom_buf_init(SerializedGeomBuffer *geom_buf, void *buf,
   geom_buf->buf_int_end = geom_buf->buf_int + num_ints;
 }
 
-static SedonaErrorCode geom_buf_alloc(SerializedGeomBuffer *geom_buf,
+static SedonaErrorCode geom_buf_alloc(GeomBuffer *geom_buf,
                                       GeometryTypeId geom_type_id, int srid,
                                       const CoordinateSequenceInfo *cs_info,
                                       int num_ints) {
@@ -232,7 +232,7 @@ static SedonaErrorCode geom_buf_alloc(SerializedGeomBuffer *geom_buf,
 }
 
 static SedonaErrorCode parse_geom_buf(const char *buf, int buf_size,
-                                      SerializedGeomBuffer *geom_buf,
+                                      GeomBuffer *geom_buf,
                                       CoordinateSequenceInfo *cs_info,
                                       GeometryTypeId *p_geom_type_id,
                                       int *p_srid) {
@@ -279,7 +279,7 @@ static SedonaErrorCode parse_geom_buf(const char *buf, int buf_size,
 }
 
 static SedonaErrorCode geom_buf_write_coords(
-    SerializedGeomBuffer *geom_buf, GEOSContextHandle_t handle,
+    GeomBuffer *geom_buf, GEOSContextHandle_t handle,
     const GEOSCoordSequence *coord_seq, const CoordinateSequenceInfo *cs_info) {
   int num_coords = cs_info->num_coords;
   if (num_coords == 0) {
@@ -298,7 +298,7 @@ static SedonaErrorCode geom_buf_write_coords(
   return SEDONA_SUCCESS;
 }
 
-static SedonaErrorCode geom_buf_write_polygon(SerializedGeomBuffer *geom_buf,
+static SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
                                               GEOSContextHandle_t handle,
                                               const GEOSGeometry *geom,
                                               CoordinateSequenceInfo *cs_info) {
@@ -440,6 +440,16 @@ geos_error:
   return SEDONA_GEOS_ERROR;
 }
 
+static SedonaErrorCode sedona_deserialize_point(GEOSContextHandle_t handle,
+                                                int srid, GeomBuffer *geom_buf,
+                                                CoordinateSequenceInfo *cs_info,
+                                                GEOSGeometry **p_geom) {
+  /* TODO: implement this */
+  GEOSGeometry *geom = dyn_GEOSGeom_createPointFromXY_r(handle, 10.0, 20.0);
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
+}
+
 static SedonaErrorCode sedona_serialize_linestring(GEOSContextHandle_t handle,
                                                    GEOSGeometry *geom,
                                                    char **p_buf,
@@ -455,7 +465,7 @@ static SedonaErrorCode sedona_serialize_linestring(GEOSContextHandle_t handle,
     return err;
   }
 
-  SerializedGeomBuffer geom_buf;
+  GeomBuffer geom_buf;
   err = geom_buf_alloc(&geom_buf, LINESTRING, srid, &cs_info, 0);
   if (err != SEDONA_SUCCESS) {
     return err;
@@ -470,6 +480,12 @@ static SedonaErrorCode sedona_serialize_linestring(GEOSContextHandle_t handle,
   *p_buf = geom_buf.buf;
   *p_buf_size = geom_buf.buf_size;
   return SEDONA_SUCCESS;
+}
+
+static SedonaErrorCode sedona_deserialize_linestring(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
 }
 
 static SedonaErrorCode sedona_serialize_polygon(GEOSContextHandle_t handle,
@@ -490,7 +506,7 @@ static SedonaErrorCode sedona_serialize_polygon(GEOSContextHandle_t handle,
     return SEDONA_GEOS_ERROR;
   }
 
-  SerializedGeomBuffer geom_buf;
+  GeomBuffer geom_buf;
   int num_rings = num_interior_rings + 1;
   err = geom_buf_alloc(&geom_buf, POLYGON, srid, &cs_info, num_rings + 1);
   if (err != SEDONA_SUCCESS) {
@@ -508,17 +524,35 @@ static SedonaErrorCode sedona_serialize_polygon(GEOSContextHandle_t handle,
   return SEDONA_SUCCESS;
 }
 
+static SedonaErrorCode sedona_deserialize_polygon(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
+}
+
 static SedonaErrorCode sedona_serialize_multipoint(GEOSContextHandle_t handle,
                                                    GEOSGeometry *geom,
                                                    char **p_buf,
                                                    int *p_buf_size) {
-  return SEDONA_SUCCESS;
+  return SEDONA_UNKNOWN_GEOM_TYPE;
+}
+
+static SedonaErrorCode sedona_deserialize_multipoint(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
 }
 
 static SedonaErrorCode sedona_serialize_multilinestring(
     GEOSContextHandle_t handle, GEOSGeometry *geom, char **p_buf,
     int *p_buf_size) {
   return SEDONA_SUCCESS;
+}
+
+static SedonaErrorCode sedona_deserialize_multilinestring(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
 }
 
 static SedonaErrorCode sedona_serialize_multipolygon(GEOSContextHandle_t handle,
@@ -528,10 +562,22 @@ static SedonaErrorCode sedona_serialize_multipolygon(GEOSContextHandle_t handle,
   return SEDONA_SUCCESS;
 }
 
+static SedonaErrorCode sedona_deserialize_multipolygon(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
+}
+
 static SedonaErrorCode sedona_serialize_geometrycollection(
     GEOSContextHandle_t handle, GEOSGeometry *geom, char **p_buf,
     int *p_buf_size) {
   return SEDONA_SUCCESS;
+}
+
+static SedonaErrorCode sedona_deserialize_geometrycollection(
+    GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
+    CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  return SEDONA_UNKNOWN_GEOM_TYPE;
 }
 
 SedonaErrorCode sedona_serialize_geom(GEOSContextHandle_t handle,
@@ -573,9 +619,35 @@ SedonaErrorCode sedona_serialize_geom(GEOSContextHandle_t handle,
 }
 
 static SedonaErrorCode deserialize_geom_buf(GEOSContextHandle_t handle,
-                                            SerializedGeomBuffer *geom_buf,
+                                            GeometryTypeId geom_type_id,
+                                            int srid, GeomBuffer *geom_buf,
                                             CoordinateSequenceInfo *cs_info,
                                             GEOSGeometry **p_geom) {
+  switch (geom_type_id) {
+    case POINT:
+      return sedona_deserialize_point(handle, srid, geom_buf, cs_info, p_geom);
+    case LINESTRING:
+      return sedona_deserialize_linestring(handle, srid, geom_buf, cs_info,
+                                           p_geom);
+    case POLYGON:
+      return sedona_deserialize_polygon(handle, srid, geom_buf, cs_info,
+                                        p_geom);
+    case MULTIPOINT:
+      return sedona_deserialize_multipoint(handle, srid, geom_buf, cs_info,
+                                           p_geom);
+    case MULTILINESTRING:
+      return sedona_deserialize_multilinestring(handle, srid, geom_buf, cs_info,
+                                                p_geom);
+    case MULTIPOLYGON:
+      return sedona_deserialize_multipolygon(handle, srid, geom_buf, cs_info,
+                                             p_geom);
+    case GEOMETRYCOLLECTION:
+      return sedona_deserialize_geometrycollection(handle, srid, geom_buf,
+                                                   cs_info, p_geom);
+    default:
+      return SEDONA_UNSUPPORTED_GEOM_TYPE;
+  }
+
   /* TODO: implement this */
   GEOSGeometry *geom = dyn_GEOSGeom_createPointFromXY_r(handle, 10.0, 20.0);
   *p_geom = geom;
@@ -585,10 +657,7 @@ static SedonaErrorCode deserialize_geom_buf(GEOSContextHandle_t handle,
 SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
                                         const char *buf, int buf_size,
                                         GEOSGeometry **p_geom) {
-  /* GEOSGeometry *geom = dyn_GEOSGeom_createPointFromXY_r(handle, 10.0, 20.0);
-   */
-  /* *p_geom = geom; */
-  SerializedGeomBuffer geom_buf;
+  GeomBuffer geom_buf;
   CoordinateSequenceInfo cs_info;
   GeometryTypeId geom_type_id;
   int srid;
@@ -598,7 +667,8 @@ SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
     return err;
   }
 
-  return deserialize_geom_buf(handle, &geom_buf, &cs_info, p_geom);
+  return deserialize_geom_buf(handle, geom_type_id, srid, &geom_buf, &cs_info,
+                              p_geom);
 }
 
 const char *sedona_get_error_message(int err) {
