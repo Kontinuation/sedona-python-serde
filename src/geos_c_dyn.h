@@ -72,82 +72,9 @@ extern int load_geos_c_library(const char *path, char *err_msg, int len);
  */
 extern int load_geos_c_from_handle(void *handle, char *err_msg, int len);
 
-/* The following are function pointers to GEOS C APIs provided by
- * libgeos_c. These functions must be called after a successful invocation of
- * `load_geos_c_functions` */
-
-extern GEOSContextHandle_t (*dyn_GEOS_init_r)();
-
-extern void (*dyn_GEOS_finish_r)(GEOSContextHandle_t handle);
-
-extern GEOSMessageHandler (*dyn_GEOSContext_setErrorHandler_r)(
-    GEOSContextHandle_t extHandle, GEOSMessageHandler ef);
-
-extern int (*dyn_GEOSGeomTypeId_r)(GEOSContextHandle_t handle,
-                                   const GEOSGeometry *g);
-
-extern char (*dyn_GEOSHasZ_r)(GEOSContextHandle_t handle,
-                              const GEOSGeometry *g);
-
-extern int (*dyn_GEOSGetSRID_r)(GEOSContextHandle_t handle,
-                                const GEOSGeometry *g);
-
-extern void (*dyn_GEOSSetSRID_r)(GEOSContextHandle_t handle, GEOSGeometry *g,
-                                 int SRID);
-
-extern const GEOSCoordSequence *(*dyn_GEOSGeom_getCoordSeq_r)(
-    GEOSContextHandle_t handle, const GEOSGeometry *g);
-
-extern int (*dyn_GEOSCoordSeq_getDimensions_r)(GEOSContextHandle_t handle,
-                                               const GEOSCoordSequence *s,
-                                               unsigned int *dims);
-
-extern int (*dyn_GEOSCoordSeq_getSize_r)(GEOSContextHandle_t handle,
-                                         const GEOSCoordSequence *s,
-                                         unsigned int *size);
-
-extern GEOSCoordSequence *(*dyn_GEOSCoordSeq_copyFromBuffer_r)(
-    GEOSContextHandle_t handle, const double *buf, unsigned int size, int hasZ,
-    int hasM);
-
-extern int (*dyn_GEOSCoordSeq_copyToBuffer_r)(GEOSContextHandle_t handle,
-                                              const GEOSCoordSequence *s,
-                                              double *buf, int hasZ, int hasM);
-
-extern int (*dyn_GEOSCoordSeq_getXY_r)(GEOSContextHandle_t handle,
-                                       const GEOSCoordSequence *s,
-                                       unsigned int idx, double *x, double *y);
-
-extern int (*dyn_GEOSCoordSeq_getXYZ_r)(GEOSContextHandle_t handle,
-                                        const GEOSCoordSequence *s,
-                                        unsigned int idx, double *x, double *y,
-                                        double *z);
-
-extern int (*dyn_GEOSCoordSeq_setXY_r)(GEOSContextHandle_t handle,
-                                       GEOSCoordSequence *s, unsigned int idx,
-                                       double x, double y);
-
-extern int (*dyn_GEOSCoordSeq_setXYZ_r)(GEOSContextHandle_t handle,
-                                        GEOSCoordSequence *s, unsigned int idx,
-                                        double x, double y, double z);
-
-extern const GEOSGeometry *(*dyn_GEOSGetExteriorRing_r)(
-    GEOSContextHandle_t handle, const GEOSGeometry *g);
-
-extern int (*dyn_GEOSGetNumInteriorRings_r)(GEOSContextHandle_t handle,
-                                            const GEOSGeometry *g);
-
-extern int (*dyn_GEOSGetNumCoordinates_r)(GEOSContextHandle_t handle,
-                                          const GEOSGeometry *g);
-
-extern int (*dyn_GEOSGeom_getCoordinateDimension_r)(GEOSContextHandle_t handle,
-                                                    const GEOSGeometry *g);
-
-extern const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(
-    GEOSContextHandle_t handle, const GEOSGeometry *g, int n);
-
-extern GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(
-    GEOSContextHandle_t handle, double x, double y);
+#define GEOS_FP_QUALIFIER extern
+#include "geos_c_dyn_funcs.h"
+#undef GEOS_FP_QUALIFIER
 
 /* Supported geometry types */
 enum GEOSGeomTypes {
