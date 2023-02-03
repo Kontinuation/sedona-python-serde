@@ -264,7 +264,7 @@ static SedonaErrorCode parse_geom_buf(const char *buf, int buf_size,
   cs_info->num_coords = num_coords;
   cs_info->dims = dims;
   cs_info->has_z = has_z;
-  cs_info->has_z = has_m;
+  cs_info->has_m = has_m;
 
   geom_buf->buf = (void *)buf;
   geom_buf->buf_coord = (double *)(buf + 8);
@@ -647,11 +647,6 @@ static SedonaErrorCode deserialize_geom_buf(GEOSContextHandle_t handle,
     default:
       return SEDONA_UNSUPPORTED_GEOM_TYPE;
   }
-
-  /* TODO: implement this */
-  GEOSGeometry *geom = dyn_GEOSGeom_createPointFromXY_r(handle, 10.0, 20.0);
-  *p_geom = geom;
-  return SEDONA_SUCCESS;
 }
 
 SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,

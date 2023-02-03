@@ -5,6 +5,7 @@
 /apache_sedona.egg-info/
 /build/
 /dist/
-/experi/
+*.svg
 *.pyc
 compile_flags.txt
+format.sh
