@@ -117,11 +117,11 @@ extern SedonaErrorCode geom_buf_alloc(GeomBuffer *geom_buf,
                                       const CoordinateSequenceInfo *cs_info,
                                       int num_ints);
 
-extern SedonaErrorCode parse_geom_buf_header(const char *buf, int buf_size,
-                                             GeomBuffer *geom_buf,
-                                             CoordinateSequenceInfo *cs_info,
-                                             GeometryTypeId *p_geom_type_id,
-                                             int *p_srid);
+extern SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
+                                            GeomBuffer *geom_buf,
+                                            CoordinateSequenceInfo *cs_info,
+                                            GeometryTypeId *p_geom_type_id,
+                                            int *p_srid);
 extern SedonaErrorCode geom_buf_write_coords(
     GeomBuffer *geom_buf, GEOSContextHandle_t handle,
     const GEOSCoordSequence *coord_seq, const CoordinateSequenceInfo *cs_info);
@@ -134,6 +134,11 @@ extern SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
                                               GEOSContextHandle_t handle,
                                               const GEOSGeometry *geom,
                                               CoordinateSequenceInfo *cs_info);
+
+extern SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
+                                             GEOSContextHandle_t handle,
+                                             CoordinateSequenceInfo *cs_info,
+                                             GEOSGeometry **p_geom);
 
 #define RETURN_BUFFER_FOR_EMPTY_GEOM(geom_type_id, coord_type, srid)    \
   do {                                                                  \

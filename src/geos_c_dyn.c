@@ -82,6 +82,11 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createLineString_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPolygon_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createPolygon_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createLinearRing_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_destroy_r);
 
   /* These functions are not mandantory, only libgeos (>=3.10.0) bundled with
    * shapely>=1.8.0 has these functions. */

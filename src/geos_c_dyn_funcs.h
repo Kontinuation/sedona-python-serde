@@ -21,6 +21,7 @@
  * libgeos_c. These functions must be called after a successful invocation of
  * `load_geos_c_functions` */
 
+#include "geos_c_dyn.h"
 GEOS_FP_QUALIFIER GEOSContextHandle_t (*dyn_GEOS_init_r)();
 
 GEOS_FP_QUALIFIER void (*dyn_GEOS_finish_r)(GEOSContextHandle_t handle);
@@ -107,3 +108,19 @@ GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createPoint_r)(
 
 GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createLineString_r)(
+    GEOSContextHandle_t handle, GEOSCoordSequence *s);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createEmptyPolygon_r)(
+    GEOSContextHandle_t handle);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createPolygon_r)(
+    GEOSContextHandle_t handle, GEOSGeometry *shell, GEOSGeometry **holes,
+    unsigned int nholes);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createLinearRing_r)(
+    GEOSContextHandle_t handle, GEOSCoordSequence *s);
+
+GEOS_FP_QUALIFIER void (*dyn_GEOSGeom_destroy_r)(GEOSContextHandle_t handle,
+                                                 GEOSGeometry *g);

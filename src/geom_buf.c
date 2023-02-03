@@ -19,6 +19,8 @@
 
 #include "geom_buf.h"
 
+#include <string.h>
+
 #include "geomserde.h"
 #include "geos_c_dyn.h"
 
@@ -201,11 +203,11 @@ SedonaErrorCode geom_buf_alloc(GeomBuffer *geom_buf,
   return SEDONA_SUCCESS;
 }
 
-SedonaErrorCode parse_geom_buf_header(const char *buf, int buf_size,
-                                      GeomBuffer *geom_buf,
-                                      CoordinateSequenceInfo *cs_info,
-                                      GeometryTypeId *p_geom_type_id,
-                                      int *p_srid) {
+SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
+                                     GeomBuffer *geom_buf,
+                                     CoordinateSequenceInfo *cs_info,
+                                     GeometryTypeId *p_geom_type_id,
+                                     int *p_srid) {
   if (buf_size < 8) {
     return SEDONA_INVALID_ARG_ERROR;
   }
@@ -265,6 +267,18 @@ SedonaErrorCode parse_geom_buf_header(const char *buf, int buf_size,
 
   *p_geom_type_id = geom_type_id;
   *p_srid = srid;
+  return SEDONA_SUCCESS;
+}
+
+SedonaErrorCode geom_buf_read_int(GeomBuffer *geom_buf, int *p_value) {
+  if (geom_buf->buf_int >= geom_buf->buf_int_end) {
+    return SEDONA_INCOMPLETE_BUFFER;
+  }
+  int value = *geom_buf->buf_int++;
+  if (value < 0) {
+    return SEDONA_BAD_GEOM_BUFFER;
+  }
+  *p_value = value;
   return SEDONA_SUCCESS;
 }
 
@@ -384,4 +398,74 @@ SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
   }
 
   return SEDONA_SUCCESS;
+}
+
+static SedonaErrorCode create_empty_polygon(GEOSContextHandle_t handle,
+                                            GEOSGeometry **p_geom) {
+  GEOSGeometry *geom = dyn_GEOSGeom_createEmptyPolygon_r(handle);
+  if (geom == NULL) {
+    return SEDONA_GEOS_ERROR;
+  }
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
+}
+
+SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
+                                      GEOSContextHandle_t handle,
+                                      CoordinateSequenceInfo *cs_info,
+                                      GEOSGeometry **p_geom) {
+  if (cs_info->num_coords == 0) {
+    return create_empty_polygon(handle, p_geom);
+  }
+
+  int num_rings = 0;
+  SedonaErrorCode err = geom_buf_read_int(geom_buf, &num_rings);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+  if (num_rings == 0) {
+    return create_empty_polygon(handle, p_geom);
+  }
+
+  GEOSCoordSequence *coord_seq = NULL;
+  GEOSGeometry *rings[num_rings];
+  memset(rings, 0, sizeof(rings));
+  for (int k = 0; k < num_rings - 1; k++) {
+    err = geom_buf_read_int(geom_buf, (int *)&cs_info->num_coords);
+    if (err != SEDONA_SUCCESS) {
+      goto geos_error;
+    }
+    err = geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
+    if (err != SEDONA_SUCCESS) {
+      goto geos_error;
+    }
+    rings[k] = dyn_GEOSGeom_createLinearRing_r(handle, coord_seq);
+    if (rings[k] == NULL) {
+      err = SEDONA_GEOS_ERROR;
+      goto geos_error;
+    }
+    coord_seq = NULL; /* ownership transferred to rings[k] */
+  }
+
+  GEOSGeometry *geom =
+      dyn_GEOSGeom_createPolygon_r(handle, rings[0], &rings[1], num_rings - 1);
+  if (geom != NULL) {
+    err = SEDONA_GEOS_ERROR;
+    goto geos_error;
+  }
+
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
+
+geos_error:
+  if (coord_seq != NULL) {
+    dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
+  }
+  for (int k = 0; k < num_rings; k++) {
+    GEOSGeometry *ring = rings[k];
+    if (ring != NULL) {
+      dyn_GEOSGeom_destroy_r(handle, ring);
+    }
+  }
+  return err;
 }
