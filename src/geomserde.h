@@ -30,7 +30,6 @@ typedef enum SedonaErrorCode {
   SEDONA_UNKNOWN_GEOM_TYPE,
   SEDONA_UNKNOWN_COORD_TYPE,
   SEDONA_UNSUPPORTED_GEOM_TYPE,
-  SEDONA_INVALID_ARG_ERROR,
   SEDONA_INCOMPLETE_BUFFER,
   SEDONA_BAD_GEOM_BUFFER,
   SEDONA_GEOS_ERROR,
@@ -56,8 +55,8 @@ extern const char *sedona_get_error_message(int err);
  * @return error code
  */
 extern SedonaErrorCode sedona_serialize_geom(GEOSContextHandle_t handle,
-                                             GEOSGeometry *geom, char **p_buf,
-                                             int *p_buf_size);
+                                             const GEOSGeometry *geom,
+                                             char **p_buf, int *p_buf_size);
 
 /**
  * Deserializes a serialized geometry to a GEOS geometry object

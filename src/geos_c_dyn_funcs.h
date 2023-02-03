@@ -100,6 +100,12 @@ GEOS_FP_QUALIFIER int (*dyn_GEOSGeom_getCoordinateDimension_r)(
 GEOS_FP_QUALIFIER const GEOSGeometry *(*dyn_GEOSGetInteriorRingN_r)(
     GEOSContextHandle_t handle, const GEOSGeometry *g, int n);
 
+GEOS_FP_QUALIFIER int (*dyn_GEOSGetNumGeometries_r)(GEOSContextHandle_t handle,
+                                                    const GEOSGeometry *g);
+
+GEOS_FP_QUALIFIER const GEOSGeometry *(*dyn_GEOSGetGeometryN_r)(
+    GEOSContextHandle_t handle, const GEOSGeometry *g, int n);
+
 GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createEmptyPoint_r)(
     GEOSContextHandle_t handle);
 
@@ -124,3 +130,10 @@ GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createLinearRing_r)(
 
 GEOS_FP_QUALIFIER void (*dyn_GEOSGeom_destroy_r)(GEOSContextHandle_t handle,
                                                  GEOSGeometry *g);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createCollection_r)(
+    GEOSContextHandle_t handle, int type, GEOSGeometry **geoms,
+    unsigned int ngeoms);
+
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createEmptyCollection_r)(
+    GEOSContextHandle_t handle, int type);

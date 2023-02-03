@@ -209,7 +209,7 @@ SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
                                      GeometryTypeId *p_geom_type_id,
                                      int *p_srid) {
   if (buf_size < 8) {
-    return SEDONA_INVALID_ARG_ERROR;
+    return SEDONA_INCOMPLETE_BUFFER;
   }
   unsigned int preamble = (unsigned int)buf[0];
   int srid = 0;
@@ -225,6 +225,9 @@ SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
   }
   if (coord_type < 0 || coord_type > XYZM) {
     return SEDONA_UNKNOWN_COORD_TYPE;
+  }
+  if (num_coords < 0 || num_coords > buf_size) {
+    return SEDONA_BAD_GEOM_BUFFER;
   }
 
   int bytes_per_coord = get_bytes_per_coordinate(coord_type);
@@ -256,12 +259,12 @@ SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
 
     /* geom_buf contains a series of serialized geometries. buf_coord is the
      * begining of its first child geometry, and buf_int is unused. */
-    const char *buf_end = buf + buf_size;
+    const void *buf_coord = buf + 8;
     geom_buf->buf = (void *)buf;
-    geom_buf->buf_coord = (double *)(buf + 8);
-    geom_buf->buf_coord_end = (double *)buf_end;
-    geom_buf->buf_int = (int *)buf_end;
-    geom_buf->buf_int_end = (int *)buf_end;
+    geom_buf->buf_coord = (double *)(buf_coord);
+    geom_buf->buf_coord_end = (double *)buf_coord;
+    geom_buf->buf_int = (int *)buf_coord;
+    geom_buf->buf_int_end = (int *)buf_coord;
     geom_buf->buf_size = buf_size;
   }
 
@@ -270,12 +273,12 @@ SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
   return SEDONA_SUCCESS;
 }
 
-SedonaErrorCode geom_buf_read_int(GeomBuffer *geom_buf, int *p_value) {
+SedonaErrorCode geom_buf_read_bounded_int(GeomBuffer *geom_buf, int *p_value) {
   if (geom_buf->buf_int >= geom_buf->buf_int_end) {
     return SEDONA_INCOMPLETE_BUFFER;
   }
   int value = *geom_buf->buf_int++;
-  if (value < 0) {
+  if (value < 0 || value > geom_buf->buf_size) {
     return SEDONA_BAD_GEOM_BUFFER;
   }
   *p_value = value;
@@ -419,7 +422,7 @@ SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
   }
 
   int num_rings = 0;
-  SedonaErrorCode err = geom_buf_read_int(geom_buf, &num_rings);
+  SedonaErrorCode err = geom_buf_read_bounded_int(geom_buf, &num_rings);
   if (err != SEDONA_SUCCESS) {
     return err;
   }
@@ -427,45 +430,40 @@ SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
     return create_empty_polygon(handle, p_geom);
   }
 
-  GEOSCoordSequence *coord_seq = NULL;
-  GEOSGeometry *rings[num_rings];
-  memset(rings, 0, sizeof(rings));
+  GEOSGeometry **rings = calloc(num_rings, sizeof(GEOSGeometry *));
+  if (rings == NULL) {
+    return SEDONA_ALLOC_ERROR;
+  }
   for (int k = 0; k < num_rings - 1; k++) {
-    err = geom_buf_read_int(geom_buf, (int *)&cs_info->num_coords);
+    err = geom_buf_read_bounded_int(geom_buf, (int *)&cs_info->num_coords);
     if (err != SEDONA_SUCCESS) {
-      goto geos_error;
+      goto handle_error;
     }
+    GEOSCoordSequence *coord_seq = NULL;
     err = geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
     if (err != SEDONA_SUCCESS) {
-      goto geos_error;
+      goto handle_error;
     }
     rings[k] = dyn_GEOSGeom_createLinearRing_r(handle, coord_seq);
     if (rings[k] == NULL) {
+      dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
       err = SEDONA_GEOS_ERROR;
-      goto geos_error;
+      goto handle_error;
     }
-    coord_seq = NULL; /* ownership transferred to rings[k] */
   }
 
   GEOSGeometry *geom =
       dyn_GEOSGeom_createPolygon_r(handle, rings[0], &rings[1], num_rings - 1);
   if (geom != NULL) {
     err = SEDONA_GEOS_ERROR;
-    goto geos_error;
+    goto handle_error;
   }
 
+  free(rings);
   *p_geom = geom;
   return SEDONA_SUCCESS;
 
-geos_error:
-  if (coord_seq != NULL) {
-    dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
-  }
-  for (int k = 0; k < num_rings; k++) {
-    GEOSGeometry *ring = rings[k];
-    if (ring != NULL) {
-      dyn_GEOSGeom_destroy_r(handle, ring);
-    }
-  }
+handle_error:
+  destroy_geometry_array(handle, rings, num_rings);
   return err;
 }

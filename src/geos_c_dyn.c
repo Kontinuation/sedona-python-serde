@@ -79,6 +79,8 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSGetInteriorRingN_r);
   LOAD_GEOS_FUNCTION(GEOSGetNumCoordinates_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_getCoordinateDimension_r);
+  LOAD_GEOS_FUNCTION(GEOSGetNumGeometries_r);
+  LOAD_GEOS_FUNCTION(GEOSGetGeometryN_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
@@ -86,6 +88,8 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPolygon_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPolygon_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createLinearRing_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createCollection_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyCollection_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_destroy_r);
 
   /* These functions are not mandantory, only libgeos (>=3.10.0) bundled with

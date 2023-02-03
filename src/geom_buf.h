@@ -151,4 +151,14 @@ extern SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
     return SEDONA_SUCCESS;                                              \
   } while (0)
 
+inline void destroy_geometry_array(GEOSContextHandle_t handle,
+                                   GEOSGeometry **geoms, int num_geoms) {
+  for (int k = 0; k < num_geoms; k++) {
+    if (geoms[k] != NULL) {
+      dyn_GEOSGeom_destroy_r(handle, geoms[k]);
+    }
+  }
+  free(geoms);
+}
+
 #endif /* GEOM_BUF */
