@@ -285,25 +285,174 @@ handle_error:
 static SedonaErrorCode sedona_serialize_multilinestring(
     GEOSContextHandle_t handle, const GEOSGeometry *geom, int srid,
     CoordinateSequenceInfo *cs_info, char **p_buf, int *p_buf_size) {
+  int num_geoms = dyn_GEOSGetNumGeometries_r(handle, geom);
+  if (num_geoms == -1) {
+    return SEDONA_GEOS_ERROR;
+  }
+
+  GeomBuffer geom_buf;
+  SedonaErrorCode err =
+      geom_buf_alloc(&geom_buf, MULTILINESTRING, srid, cs_info, num_geoms + 1);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+
+  if ((err = geom_buf_write_int(&geom_buf, num_geoms)) != SEDONA_SUCCESS) {
+    return err;
+  }
+  for (int k = 0; k < num_geoms; k++) {
+    const GEOSGeometry *linestring = dyn_GEOSGetGeometryN_r(handle, geom, k);
+    if (linestring == NULL) {
+      err = SEDONA_GEOS_ERROR;
+      goto handle_error;
+    }
+
+    err = geom_buf_write_linear_segment(&geom_buf, handle, geom, cs_info);
+    if (err != SEDONA_SUCCESS) {
+      goto handle_error;
+    }
+  }
+
+  *p_buf = geom_buf.buf;
+  *p_buf_size = geom_buf.buf_size;
   return SEDONA_SUCCESS;
+
+handle_error:
+  free(geom_buf.buf);
+  return err;
 }
 
 static SedonaErrorCode sedona_deserialize_multilinestring(
     GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
     CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
-  return SEDONA_UNKNOWN_GEOM_TYPE;
+  int num_geoms = 0;
+  SedonaErrorCode err = geom_buf_read_bounded_int(geom_buf, &num_geoms);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+
+  GEOSGeometry **linestrings = calloc(num_geoms, sizeof(GEOSGeometry *));
+  for (int k = 0; k < num_geoms; k++) {
+    GEOSGeometry *linestring = NULL;
+    if ((err = geom_buf_read_linear_segment(geom_buf, handle, cs_info,
+                                            GEOS_LINESTRING, &linestring)) !=
+        SEDONA_SUCCESS) {
+      goto handle_error;
+    }
+    linestrings[k] = linestring;
+  }
+
+  GEOSGeometry *geom = dyn_GEOSGeom_createCollection_r(
+      handle, GEOS_MULTILINESTRING, linestrings, num_geoms);
+  if (geom == NULL) {
+    err = SEDONA_GEOS_ERROR;
+    goto handle_error;
+  }
+
+  free(linestrings);
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
+
+handle_error:
+  destroy_geometry_array(handle, linestrings, num_geoms);
+  return err;
 }
 
 static SedonaErrorCode sedona_serialize_multipolygon(
     GEOSContextHandle_t handle, const GEOSGeometry *geom, int srid,
     CoordinateSequenceInfo *cs_info, char **p_buf, int *p_buf_size) {
+  int num_geoms = dyn_GEOSGetNumGeometries_r(handle, geom);
+  if (num_geoms == -1) {
+    return SEDONA_GEOS_ERROR;
+  }
+
+  /* collect size of structural data */
+  int num_rings = 0;
+  for (int k = 0; k < num_geoms; k++) {
+    const GEOSGeometry *polygon = dyn_GEOSGetGeometryN_r(handle, geom, k);
+    if (polygon == NULL) {
+      return SEDONA_GEOS_ERROR;
+    }
+    int num_interior_rings = dyn_GEOSGetNumInteriorRings_r(handle, polygon);
+    if (num_interior_rings == -1) {
+      return SEDONA_GEOS_ERROR;
+    }
+    if (num_interior_rings > 0) {
+      num_rings += (num_interior_rings + 1);
+    } else {
+      /* check if polygon is empty */
+      char is_empty = dyn_GEOSisEmpty_r(handle, polygon);
+      if (is_empty == 2) {
+        return SEDONA_GEOS_ERROR;
+      }
+      num_rings += (is_empty == 1 ? 0 : 1);
+    }
+  }
+
+  GeomBuffer geom_buf;
+  SedonaErrorCode err = geom_buf_alloc(&geom_buf, MULTILINESTRING, srid,
+                                       cs_info, 1 + num_geoms + num_rings);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+  if ((err = geom_buf_write_int(&geom_buf, num_geoms)) != SEDONA_SUCCESS) {
+    return err;
+  }
+  for (int k = 0; k < num_geoms; k++) {
+    const GEOSGeometry *polygon = dyn_GEOSGetGeometryN_r(handle, geom, k);
+    if (polygon == NULL) {
+      err = SEDONA_GEOS_ERROR;
+      goto handle_error;
+    }
+
+    if ((err = geom_buf_write_polygon(&geom_buf, handle, polygon, cs_info)) !=
+        SEDONA_SUCCESS) {
+      goto handle_error;
+    }
+  }
+
+  *p_buf = geom_buf.buf;
+  *p_buf_size = geom_buf.buf_size;
   return SEDONA_SUCCESS;
+
+handle_error:
+  free(geom_buf.buf);
+  return err;
 }
 
 static SedonaErrorCode sedona_deserialize_multipolygon(
     GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
     CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
-  return SEDONA_UNKNOWN_GEOM_TYPE;
+  int num_geoms = 0;
+  SedonaErrorCode err = geom_buf_read_bounded_int(geom_buf, &num_geoms);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+
+  GEOSGeometry **polygons = calloc(num_geoms, sizeof(GEOSGeometry *));
+  for (int k = 0; k < num_geoms; k++) {
+    GEOSGeometry *polygon = NULL;
+    if ((err = geom_buf_read_polygon(geom_buf, handle, cs_info, &polygon)) !=
+        SEDONA_SUCCESS) {
+      goto handle_error;
+    }
+    polygons[k] = polygon;
+  }
+
+  GEOSGeometry *geom = dyn_GEOSGeom_createCollection_r(handle, MULTIPOLYGON,
+                                                       polygons, num_geoms);
+  if (geom == NULL) {
+    err = SEDONA_GEOS_ERROR;
+    goto handle_error;
+  }
+
+  free(polygons);
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
+
+handle_error:
+  destroy_geometry_array(handle, polygons, num_geoms);
+  return err;
 }
 
 static inline int aligned_offset(int offset) { return (offset + 7) & ~7; }

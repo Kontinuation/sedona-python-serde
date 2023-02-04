@@ -122,6 +122,11 @@ extern SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
                                             CoordinateSequenceInfo *cs_info,
                                             GeometryTypeId *p_geom_type_id,
                                             int *p_srid);
+
+extern SedonaErrorCode geom_buf_write_int(GeomBuffer *geom_buf, int value);
+extern SedonaErrorCode geom_buf_read_bounded_int(GeomBuffer *geom_buf,
+                                                 int *p_value);
+
 extern SedonaErrorCode geom_buf_write_coords(
     GeomBuffer *geom_buf, GEOSContextHandle_t handle,
     const GEOSCoordSequence *coord_seq, const CoordinateSequenceInfo *cs_info);
@@ -129,6 +134,14 @@ extern SedonaErrorCode geom_buf_write_coords(
 extern SedonaErrorCode geom_buf_read_coords(
     GeomBuffer *geom_buf, GEOSContextHandle_t handle,
     const CoordinateSequenceInfo *cs_info, GEOSCoordSequence **p_coord_seq);
+
+extern SedonaErrorCode geom_buf_write_linear_segment(
+    GeomBuffer *geom_buf, GEOSContextHandle_t handle, const GEOSGeometry *geom,
+    CoordinateSequenceInfo *cs_info);
+
+extern SedonaErrorCode geom_buf_read_linear_segment(
+    GeomBuffer *geom_buf, GEOSContextHandle_t handle,
+    CoordinateSequenceInfo *cs_info, int type, GEOSGeometry **p_geom);
 
 extern SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
                                               GEOSContextHandle_t handle,

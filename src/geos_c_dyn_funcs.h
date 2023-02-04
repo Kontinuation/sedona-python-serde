@@ -106,6 +106,9 @@ GEOS_FP_QUALIFIER int (*dyn_GEOSGetNumGeometries_r)(GEOSContextHandle_t handle,
 GEOS_FP_QUALIFIER const GEOSGeometry *(*dyn_GEOSGetGeometryN_r)(
     GEOSContextHandle_t handle, const GEOSGeometry *g, int n);
 
+GEOS_FP_QUALIFIER char (*dyn_GEOSisEmpty_r)(GEOSContextHandle_t handle,
+                                            const GEOSGeometry *g);
+
 GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createEmptyPoint_r)(
     GEOSContextHandle_t handle);
 
