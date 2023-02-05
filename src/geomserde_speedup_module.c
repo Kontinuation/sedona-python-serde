@@ -117,8 +117,7 @@ static void handle_geomserde_error(SedonaErrorCode err) {
     PyErr_Format(PyExc_RuntimeError, "%s", errmsg);
   } else if (err == SEDONA_GEOS_ERROR) {
     const char *errmsg = sedona_get_error_message(err);
-    PyErr_Format(PyExc_RuntimeError, "%s (geos error: %s)", errmsg,
-                 geos_err_msg);
+    PyErr_Format(PyExc_RuntimeError, "%s: %s", errmsg, geos_err_msg);
   } else {
     const char *errmsg = sedona_get_error_message(err);
     PyErr_Format(PyExc_ValueError, "%s", errmsg);

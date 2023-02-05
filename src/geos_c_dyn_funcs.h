@@ -118,6 +118,9 @@ GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createPoint_r)(
 GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createPointFromXY_r)(
     GEOSContextHandle_t handle, double x, double y);
 
+GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createEmptyLineString_r)(
+    GEOSContextHandle_t handle);
+
 GEOS_FP_QUALIFIER GEOSGeometry *(*dyn_GEOSGeom_createLineString_r)(
     GEOSContextHandle_t handle, GEOSCoordSequence *s);
 

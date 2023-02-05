@@ -85,6 +85,7 @@ int load_geos_c_from_handle(void *handle, char *err_msg, int len) {
   LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPoint_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPointFromXY_r);
+  LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyLineString_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createLineString_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createEmptyPolygon_r);
   LOAD_GEOS_FUNCTION(GEOSGeom_createPolygon_r);

@@ -95,6 +95,10 @@ static SedonaErrorCode sedona_deserialize_point(GEOSContextHandle_t handle,
 static SedonaErrorCode sedona_serialize_linestring(
     GEOSContextHandle_t handle, const GEOSGeometry *geom, int srid,
     CoordinateSequenceInfo *cs_info, char **p_buf, int *p_buf_size) {
+  if (cs_info->num_coords == 0) {
+    RETURN_BUFFER_FOR_EMPTY_GEOM(LINESTRING, cs_info->coord_type, srid);
+  }
+
   const GEOSCoordSequence *coord_seq = dyn_GEOSGeom_getCoordSeq_r(handle, geom);
   if (coord_seq == NULL) {
     return SEDONA_GEOS_ERROR;
@@ -120,6 +124,15 @@ static SedonaErrorCode sedona_serialize_linestring(
 static SedonaErrorCode sedona_deserialize_linestring(
     GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
     CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  if (cs_info->num_coords == 0) {
+    GEOSGeometry *geom = dyn_GEOSGeom_createEmptyLineString_r(handle);
+    if (geom == NULL) {
+      return SEDONA_GEOS_ERROR;
+    }
+    *p_geom = geom;
+    return SEDONA_SUCCESS;
+  }
+
   GEOSCoordSequence *coord_seq = NULL;
   SedonaErrorCode err =
       geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
@@ -173,6 +186,14 @@ static SedonaErrorCode sedona_serialize_polygon(GEOSContextHandle_t handle,
 static SedonaErrorCode sedona_deserialize_polygon(
     GEOSContextHandle_t handle, int srid, GeomBuffer *geom_buf,
     CoordinateSequenceInfo *cs_info, GEOSGeometry **p_geom) {
+  if (cs_info->num_coords == 0) {
+    GEOSGeometry *geom = dyn_GEOSGeom_createEmptyPolygon_r(handle);
+    if (geom == NULL) {
+      return SEDONA_GEOS_ERROR;
+    }
+    *p_geom = geom;
+    return SEDONA_SUCCESS;
+  }
   return geom_buf_read_polygon(geom_buf, handle, cs_info, p_geom);
 }
 

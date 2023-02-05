@@ -449,31 +449,22 @@ SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
   return SEDONA_SUCCESS;
 }
 
-static SedonaErrorCode create_empty_polygon(GEOSContextHandle_t handle,
-                                            GEOSGeometry **p_geom) {
-  GEOSGeometry *geom = dyn_GEOSGeom_createEmptyPolygon_r(handle);
-  if (geom == NULL) {
-    return SEDONA_GEOS_ERROR;
-  }
-  *p_geom = geom;
-  return SEDONA_SUCCESS;
-}
-
 SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
                                       GEOSContextHandle_t handle,
                                       CoordinateSequenceInfo *cs_info,
                                       GEOSGeometry **p_geom) {
-  if (cs_info->num_coords == 0) {
-    return create_empty_polygon(handle, p_geom);
-  }
-
   int num_rings = 0;
   SedonaErrorCode err = geom_buf_read_bounded_int(geom_buf, &num_rings);
   if (err != SEDONA_SUCCESS) {
     return err;
   }
   if (num_rings == 0) {
-    return create_empty_polygon(handle, p_geom);
+    GEOSGeometry *geom = dyn_GEOSGeom_createEmptyPolygon_r(handle);
+    if (geom == NULL) {
+      return SEDONA_GEOS_ERROR;
+    }
+    *p_geom = geom;
+    return SEDONA_SUCCESS;
   }
 
   GEOSGeometry **rings = calloc(num_rings, sizeof(GEOSGeometry *));
