@@ -184,6 +184,11 @@ static SedonaErrorCode sedona_serialize_multipoint(
     return SEDONA_GEOS_ERROR;
   }
 
+  /* cs_info->num_coords will be smaller than actual number of serialized
+   * coordinates when there're empty points in the multipoint, so let's fix
+   * it. */
+  cs_info->num_coords = num_points;
+
   GeomBuffer geom_buf;
   SedonaErrorCode err = geom_buf_alloc(&geom_buf, MULTIPOINT, srid, cs_info, 0);
   if (err != SEDONA_SUCCESS) {
