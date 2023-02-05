@@ -75,7 +75,7 @@ try:
         def deserialize(buf: bytearray) -> Optional[BaseGeometry]:
             if buf is None:
                 return None
-            g, geom_type_id, has_z = geomserde_speedup.deserialize_1(buf)
+            g, geom_type_id, has_z, bytes_read = geomserde_speedup.deserialize_1(buf)
 
             # The following code is mostly taken from the geom_factory function
             # in shapely/geometry/base.py, with a few tweaks to eliminate
@@ -94,7 +94,7 @@ try:
             else:
                 ob.__dict__['_ndim'] = 2
             ob.__dict__['_is_empty'] = False
-            return ob
+            return ob, bytes_read
 
     else:
         # fallback to our general pure python implementation

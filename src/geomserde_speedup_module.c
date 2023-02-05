@@ -150,7 +150,8 @@ static PyObject *do_serialize(GEOSGeometry *geos_geom) {
 }
 
 static GEOSGeometry *do_deserialize(PyObject *args,
-                                    GEOSContextHandle_t *out_handle) {
+                                    GEOSContextHandle_t *out_handle,
+                                    int *p_bytes_read) {
   Py_buffer view;
   if (!PyArg_ParseTuple(args, "y*", &view)) {
     return NULL;
@@ -166,7 +167,8 @@ static GEOSGeometry *do_deserialize(PyObject *args,
   const char *buf = view.buf;
   int buf_size = view.len;
   GEOSGeometry *geom = NULL;
-  SedonaErrorCode err = sedona_deserialize_geom(handle, buf, buf_size, &geom);
+  SedonaErrorCode err =
+      sedona_deserialize_geom(handle, buf, buf_size, &geom, p_bytes_read);
   PyBuffer_Release(&view);
   if (err != SEDONA_SUCCESS) {
     handle_geomserde_error(err);
@@ -199,12 +201,13 @@ static PyObject *serialize(PyObject *self, PyObject *args) {
 
 static PyObject *deserialize(PyObject *self, PyObject *args) {
   GEOSContextHandle_t handle = NULL;
-  GEOSGeometry *geom = do_deserialize(args, &handle);
+  int length = 0;
+  GEOSGeometry *geom = do_deserialize(args, &handle, &length);
   if (geom == NULL) {
     return NULL;
   }
   PyObject *pygeom = PyGEOS_CreateGeometry(geom, handle);
-  return pygeom;
+  return Py_BuildValue("(Ni)", pygeom, length);
 }
 
 /* serialize/deserialize functions for Shapely 1.x */
@@ -219,7 +222,8 @@ static PyObject *serialize_1(PyObject *self, PyObject *args) {
 
 static PyObject *deserialize_1(PyObject *self, PyObject *args) {
   GEOSContextHandle_t handle = NULL;
-  GEOSGeometry *geom = do_deserialize(args, &handle);
+  int length = 0;
+  GEOSGeometry *geom = do_deserialize(args, &handle, &length);
   if (geom == NULL) {
     return NULL;
   }
@@ -229,7 +233,7 @@ static PyObject *deserialize_1(PyObject *self, PyObject *args) {
    * to get rid of the extra overhead introduced by ctypes. */
   int geom_type_id = dyn_GEOSGeomTypeId_r(handle, geom);
   char has_z = dyn_GEOSHasZ_r(handle, geom);
-  return Py_BuildValue("(lib)", geom, geom_type_id, has_z);
+  return Py_BuildValue("(libi)", geom, geom_type_id, has_z, length);
 }
 
 /* Module definition for Shapely 2.x */

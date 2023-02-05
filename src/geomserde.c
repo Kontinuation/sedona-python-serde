@@ -231,6 +231,7 @@ static SedonaErrorCode sedona_serialize_multipoint(
     }
 
     double *prev_buf = geom_buf.buf_coord;
+    cs_info->num_coords = 1;
     err = geom_buf_write_coords(&geom_buf, handle, coord_seq, cs_info);
     if (err != SEDONA_SUCCESS) {
       goto handle_error;
@@ -268,6 +269,7 @@ static SedonaErrorCode sedona_deserialize_multipoint(
     GEOSGeometry *point = NULL;
     if (cs_info->has_z) {
       GEOSCoordSequence *coord_seq = NULL;
+      cs_info->num_coords = 1;
       err = geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
       if (err != SEDONA_SUCCESS) {
         goto handle_error;
@@ -333,7 +335,7 @@ static SedonaErrorCode sedona_serialize_multilinestring(
       goto handle_error;
     }
 
-    err = geom_buf_write_linear_segment(&geom_buf, handle, geom, cs_info);
+    err = geom_buf_write_linear_segment(&geom_buf, handle, linestring, cs_info);
     if (err != SEDONA_SUCCESS) {
       goto handle_error;
     }
@@ -416,8 +418,8 @@ static SedonaErrorCode sedona_serialize_multipolygon(
   }
 
   GeomBuffer geom_buf;
-  SedonaErrorCode err = geom_buf_alloc(&geom_buf, MULTILINESTRING, srid,
-                                       cs_info, 1 + num_geoms + num_rings);
+  SedonaErrorCode err = geom_buf_alloc(&geom_buf, MULTIPOLYGON, srid, cs_info,
+                                       1 + num_geoms + num_rings);
   if (err != SEDONA_SUCCESS) {
     return err;
   }
@@ -570,28 +572,21 @@ static SedonaErrorCode sedona_deserialize_geometrycollection(
   const char *buf = (const char *)geom_buf->buf + 8;
   int remaining_size = geom_buf->buf_size - 8;
   for (int k = 0; k < num_geoms; k++) {
-    GeomBuffer child_geom_buf;
-    GeometryTypeId geom_type_id;
-    int child_srid;
-    err = read_geom_buf_header(buf, remaining_size, &child_geom_buf, cs_info,
-                               &geom_type_id, &child_srid);
-    if (err != SEDONA_SUCCESS) {
-      goto handle_error;
-    }
-
     GEOSGeometry *child_geom = NULL;
-    err = deserialize_geom_buf(handle, geom_type_id, child_srid,
-                               &child_geom_buf, cs_info, &child_geom);
+    int bytes_read = 0;
+    err = sedona_deserialize_geom(handle, buf, remaining_size, &child_geom,
+                                  &bytes_read);
     if (err != SEDONA_SUCCESS) {
       goto handle_error;
     }
 
     child_geoms[k] = child_geom;
 
-    /* geom_buf.buf_int works as the marker for the end address of the geometry
-     * buffer */
-    const char *end_of_geom = (const char *)child_geom_buf.buf_int;
-    int bytes_read = aligned_offset(end_of_geom - buf);
+    bytes_read = aligned_offset(bytes_read);
+    if (remaining_size < bytes_read) {
+      err = SEDONA_INCOMPLETE_BUFFER;
+      goto handle_error;
+    }
     remaining_size -= bytes_read;
     buf += bytes_read;
   }
@@ -605,6 +600,9 @@ static SedonaErrorCode sedona_deserialize_geometrycollection(
 
   free(child_geoms);
   *p_geom = geom_collection;
+
+  /* set geom_buf.buf_int to mark the end of the buffer for this geometry
+   * collection */
   geom_buf->buf_int = (int *)buf;
   return SEDONA_SUCCESS;
 
@@ -712,7 +710,8 @@ static SedonaErrorCode deserialize_geom_buf(GEOSContextHandle_t handle,
 
 SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
                                         const char *buf, int buf_size,
-                                        GEOSGeometry **p_geom) {
+                                        GEOSGeometry **p_geom,
+                                        int *p_bytes_read) {
   GeomBuffer geom_buf;
   CoordinateSequenceInfo cs_info;
   GeometryTypeId geom_type_id;
@@ -723,8 +722,14 @@ SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
     return err;
   }
 
-  return deserialize_geom_buf(handle, geom_type_id, srid, &geom_buf, &cs_info,
-                              p_geom);
+  err = deserialize_geom_buf(handle, geom_type_id, srid, &geom_buf, &cs_info,
+                             p_geom);
+  if (err != SEDONA_SUCCESS) {
+    return err;
+  }
+
+  *p_bytes_read = ((void *)geom_buf.buf_int - geom_buf.buf);
+  return SEDONA_SUCCESS;
 }
 
 const char *sedona_get_error_message(int err) {

@@ -77,101 +77,74 @@ typedef struct GeomBuffer {
   int *buf_int_end;
 } GeomBuffer;
 
-inline CoordinateType coordinate_type_of(int has_z, int has_m) {
-  /* libgeos currently do not support M dimensions, so we simply ignore
-   * has_m */
-  if (has_z) {
-    return XYZ;
-  } else {
-    return XY;
-  }
-}
+SedonaErrorCode get_coord_seq_info(GEOSContextHandle_t handle,
+                                   const GEOSCoordSequence *coord_seq,
+                                   CoordinateSequenceInfo *coord_seq_info);
 
-inline unsigned int get_bytes_per_coordinate(CoordinateType coord_type) {
-  switch (coord_type) {
-    case XY:
-      return 16;
-    case XYZ:
-    case XYM:
-      return 24;
-    case XYZM:
-    default:
-      return 32;
-  }
-}
-
-extern SedonaErrorCode get_coord_seq_info(
-    GEOSContextHandle_t handle, const GEOSCoordSequence *coord_seq,
-    CoordinateSequenceInfo *coord_seq_info);
-
-extern SedonaErrorCode get_coord_seq_info_from_geom(
+SedonaErrorCode get_coord_seq_info_from_geom(
     GEOSContextHandle_t handle, const GEOSGeometry *geom,
     CoordinateSequenceInfo *coord_seq_info);
 
-extern void *alloc_buffer_for_geom(GeometryTypeId geom_type_id,
-                                   CoordinateType coord_type, int srid,
-                                   int buf_size, int num_coords);
+void *alloc_buffer_for_geom(GeometryTypeId geom_type_id,
+                            CoordinateType coord_type, int srid, int buf_size,
+                            int num_coords);
 
-extern SedonaErrorCode geom_buf_alloc(GeomBuffer *geom_buf,
-                                      GeometryTypeId geom_type_id, int srid,
-                                      const CoordinateSequenceInfo *cs_info,
-                                      int num_ints);
+SedonaErrorCode geom_buf_alloc(GeomBuffer *geom_buf,
+                               GeometryTypeId geom_type_id, int srid,
+                               const CoordinateSequenceInfo *cs_info,
+                               int num_ints);
 
-extern SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
-                                            GeomBuffer *geom_buf,
-                                            CoordinateSequenceInfo *cs_info,
-                                            GeometryTypeId *p_geom_type_id,
-                                            int *p_srid);
+SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
+                                     GeomBuffer *geom_buf,
+                                     CoordinateSequenceInfo *cs_info,
+                                     GeometryTypeId *p_geom_type_id,
+                                     int *p_srid);
 
-extern SedonaErrorCode geom_buf_write_int(GeomBuffer *geom_buf, int value);
-extern SedonaErrorCode geom_buf_read_bounded_int(GeomBuffer *geom_buf,
-                                                 int *p_value);
+SedonaErrorCode geom_buf_write_int(GeomBuffer *geom_buf, int value);
+SedonaErrorCode geom_buf_read_bounded_int(GeomBuffer *geom_buf, int *p_value);
 
-extern SedonaErrorCode geom_buf_write_coords(
-    GeomBuffer *geom_buf, GEOSContextHandle_t handle,
-    const GEOSCoordSequence *coord_seq, const CoordinateSequenceInfo *cs_info);
+SedonaErrorCode geom_buf_write_coords(GeomBuffer *geom_buf,
+                                      GEOSContextHandle_t handle,
+                                      const GEOSCoordSequence *coord_seq,
+                                      const CoordinateSequenceInfo *cs_info);
 
-extern SedonaErrorCode geom_buf_read_coords(
-    GeomBuffer *geom_buf, GEOSContextHandle_t handle,
-    const CoordinateSequenceInfo *cs_info, GEOSCoordSequence **p_coord_seq);
+SedonaErrorCode geom_buf_read_coords(GeomBuffer *geom_buf,
+                                     GEOSContextHandle_t handle,
+                                     const CoordinateSequenceInfo *cs_info,
+                                     GEOSCoordSequence **p_coord_seq);
 
-extern SedonaErrorCode geom_buf_write_linear_segment(
-    GeomBuffer *geom_buf, GEOSContextHandle_t handle, const GEOSGeometry *geom,
-    CoordinateSequenceInfo *cs_info);
-
-extern SedonaErrorCode geom_buf_read_linear_segment(
-    GeomBuffer *geom_buf, GEOSContextHandle_t handle,
-    CoordinateSequenceInfo *cs_info, int type, GEOSGeometry **p_geom);
-
-extern SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
+SedonaErrorCode geom_buf_write_linear_segment(GeomBuffer *geom_buf,
                                               GEOSContextHandle_t handle,
                                               const GEOSGeometry *geom,
                                               CoordinateSequenceInfo *cs_info);
 
-extern SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
+SedonaErrorCode geom_buf_read_linear_segment(GeomBuffer *geom_buf,
                                              GEOSContextHandle_t handle,
                                              CoordinateSequenceInfo *cs_info,
-                                             GEOSGeometry **p_geom);
+                                             int type, GEOSGeometry **p_geom);
 
-#define RETURN_BUFFER_FOR_EMPTY_GEOM(geom_type_id, coord_type, srid)    \
-  do {                                                                  \
-    void *buf = alloc_buffer_for_geom(POLYGON, coord_type, srid, 8, 0); \
-    if (buf == NULL) {                                                  \
-      return SEDONA_ALLOC_ERROR;                                        \
-    }                                                                   \
-    *p_buf = buf;                                                       \
-    *p_buf_size = 8;                                                    \
-    return SEDONA_SUCCESS;                                              \
+SedonaErrorCode geom_buf_write_polygon(GeomBuffer *geom_buf,
+                                       GEOSContextHandle_t handle,
+                                       const GEOSGeometry *geom,
+                                       CoordinateSequenceInfo *cs_info);
+
+SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
+                                      GEOSContextHandle_t handle,
+                                      CoordinateSequenceInfo *cs_info,
+                                      GEOSGeometry **p_geom);
+
+void destroy_geometry_array(GEOSContextHandle_t handle, GEOSGeometry **geoms,
+                            int num_geoms);
+
+#define RETURN_BUFFER_FOR_EMPTY_GEOM(geom_type_id, coord_type, srid)         \
+  do {                                                                       \
+    void *buf = alloc_buffer_for_geom(geom_type_id, coord_type, srid, 8, 0); \
+    if (buf == NULL) {                                                       \
+      return SEDONA_ALLOC_ERROR;                                             \
+    }                                                                        \
+    *p_buf = buf;                                                            \
+    *p_buf_size = 8;                                                         \
+    return SEDONA_SUCCESS;                                                   \
   } while (0)
-
-inline void destroy_geometry_array(GEOSContextHandle_t handle,
-                                   GEOSGeometry **geoms, int num_geoms) {
-  for (int k = 0; k < num_geoms; k++) {
-    if (geoms[k] != NULL) {
-      dyn_GEOSGeom_destroy_r(handle, geoms[k]);
-    }
-  }
-  free(geoms);
-}
 
 #endif /* GEOM_BUF */

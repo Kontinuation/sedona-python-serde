@@ -24,6 +24,29 @@
 #include "geomserde.h"
 #include "geos_c_dyn.h"
 
+static CoordinateType coordinate_type_of(int has_z, int has_m) {
+  /* libgeos currently do not support M dimensions, so we simply ignore
+   * has_m */
+  if (has_z) {
+    return XYZ;
+  } else {
+    return XY;
+  }
+}
+
+static unsigned int get_bytes_per_coordinate(CoordinateType coord_type) {
+  switch (coord_type) {
+    case XY:
+      return 16;
+    case XYZ:
+    case XYM:
+      return 24;
+    case XYZM:
+    default:
+      return 32;
+  }
+}
+
 SedonaErrorCode get_coord_seq_info(GEOSContextHandle_t handle,
                                    const GEOSCoordSequence *coord_seq,
                                    CoordinateSequenceInfo *coord_seq_info) {
@@ -138,6 +161,7 @@ static SedonaErrorCode copy_buffer_to_coord_seq(
     GEOSContextHandle_t handle, double *buf, int num_coords, int has_z,
     int has_m, GEOSCoordSequence **p_coord_seq) {
   if (dyn_GEOSCoordSeq_copyFromBuffer_r != NULL) {
+    /* fast path for libgeos >= 3.10.0 */
     GEOSCoordSequence *coord_seq = dyn_GEOSCoordSeq_copyFromBuffer_r(
         handle, buf, num_coords, has_z, has_m);
     if (coord_seq == NULL) {
@@ -149,7 +173,7 @@ static SedonaErrorCode copy_buffer_to_coord_seq(
 
   /* slow path for old libgeos */
   GEOSCoordSequence *coord_seq =
-      dyn_GEOSCoordSeq_create_r(handle, num_coords, has_z ? 3 : 2);
+      dyn_GEOSCoordSeq_create_r(handle, num_coords, 2 + has_z + has_m);
   if (coord_seq == NULL) {
     return SEDONA_GEOS_ERROR;
   }
@@ -471,7 +495,7 @@ SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
   if (rings == NULL) {
     return SEDONA_ALLOC_ERROR;
   }
-  for (int k = 0; k < num_rings - 1; k++) {
+  for (int k = 0; k < num_rings; k++) {
     GEOSGeometry *ring = NULL;
     err = geom_buf_read_linear_segment(geom_buf, handle, cs_info,
                                        GEOS_LINEARRING, &ring);
@@ -483,7 +507,7 @@ SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
 
   GEOSGeometry *geom =
       dyn_GEOSGeom_createPolygon_r(handle, rings[0], &rings[1], num_rings - 1);
-  if (geom != NULL) {
+  if (geom == NULL) {
     err = SEDONA_GEOS_ERROR;
     goto handle_error;
   }
@@ -495,4 +519,14 @@ SedonaErrorCode geom_buf_read_polygon(GeomBuffer *geom_buf,
 handle_error:
   destroy_geometry_array(handle, rings, num_rings);
   return err;
+}
+
+void destroy_geometry_array(GEOSContextHandle_t handle, GEOSGeometry **geoms,
+                            int num_geoms) {
+  for (int k = 0; k < num_geoms; k++) {
+    if (geoms[k] != NULL) {
+      dyn_GEOSGeom_destroy_r(handle, geoms[k]);
+    }
+  }
+  free(geoms);
 }

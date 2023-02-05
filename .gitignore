@@ -7,5 +7,6 @@
 /dist/
 *.svg
 *.pyc
+sedona/utils/geomserde_speedup.cpython*
 compile_flags.txt
 format.sh
