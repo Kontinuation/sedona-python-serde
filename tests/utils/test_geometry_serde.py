@@ -121,7 +121,8 @@ class TestGeometrySerde:
             geom_actual = TestGeometrySerde.serde_roundtrip(geom)
             assert geom_actual.equals_exact(geom, 1e-6)
             # GEOSGeom_createEmptyLineString in libgeos creates LineString with
-            # Z dimension, which might be a bug.
+            # Z dimension, This bug has been fixed by
+            # https://github.com/libgeos/geos/pull/745
             geom_actual_wkt = geom_actual.wkt.replace('LINESTRING Z EMPTY', 'LINESTRING EMPTY')
             assert geom.wkt == geom_actual_wkt
 

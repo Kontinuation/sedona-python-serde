@@ -302,6 +302,7 @@ static SedonaErrorCode sedona_deserialize_multipoint(
     goto handle_error;
   }
 
+  free(points);
   *p_geom = geom;
   return SEDONA_SUCCESS;
 
