@@ -96,7 +96,7 @@ void *alloc_buffer_for_geom(GeometryTypeId geom_type_id,
 
 static SedonaErrorCode copy_coord_seq_to_buffer(
     GEOSContextHandle_t handle, const GEOSCoordSequence *coord_seq, double *buf,
-    int has_z, int has_m) {
+    int num_coords, int has_z, int has_m) {
   if (dyn_GEOSCoordSeq_copyToBuffer_r != NULL) {
     /* fast path for libgeos >= 3.10.0 */
     if (dyn_GEOSCoordSeq_copyToBuffer_r(handle, coord_seq, buf, has_z, has_m) ==
@@ -107,11 +107,7 @@ static SedonaErrorCode copy_coord_seq_to_buffer(
   }
 
   /* slow path for old libgeos */
-  unsigned int num_coords = 0;
-  if (dyn_GEOSCoordSeq_getSize_r(handle, coord_seq, &num_coords) == 0) {
-    return SEDONA_GEOS_ERROR;
-  }
-  for (unsigned int k = 0; k < num_coords; k++) {
+  for (int k = 0; k < num_coords; k++) {
     if (has_z) {
       double x, y, z;
       if (dyn_GEOSCoordSeq_getXYZ_r(handle, coord_seq, k, &x, &y, &z) == 0) {
@@ -315,7 +311,7 @@ SedonaErrorCode geom_buf_write_coords(GeomBuffer *geom_buf,
     return SEDONA_INTERNAL_ERROR;
   }
   SedonaErrorCode err = copy_coord_seq_to_buffer(
-      handle, coord_seq, geom_buf->buf_coord, cs_info->has_z, cs_info->has_m);
+      handle, coord_seq, geom_buf->buf_coord, cs_info->num_coords, cs_info->has_z, cs_info->has_m);
   if (err != SEDONA_SUCCESS) {
     return err;
   }

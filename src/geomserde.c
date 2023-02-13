@@ -19,6 +19,8 @@
 
 #include "geomserde.h"
 
+#include <stdio.h>
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -228,13 +230,21 @@ static SedonaErrorCode sedona_serialize_multipoint(
       goto handle_error;
     }
 
-    double *prev_buf = geom_buf.buf_coord;
-    cs_info->num_coords = 1;
-    err = geom_buf_write_coords(&geom_buf, handle, coord_seq, cs_info);
-    if (err != SEDONA_SUCCESS) {
+    /* check if this point is empty */
+    unsigned int num_coords = 0;
+    if (dyn_GEOSCoordSeq_getSize_r(handle, coord_seq, &num_coords) == 0) {
+      err = SEDONA_GEOS_ERROR;
       goto handle_error;
     }
-    if (geom_buf.buf_coord == prev_buf) {
+
+    if (num_coords == 1) {
+      /* non-empty point */
+      cs_info->num_coords = 1;
+      err = geom_buf_write_coords(&geom_buf, handle, coord_seq, cs_info);
+      if (err != SEDONA_SUCCESS) {
+        goto handle_error;
+      }
+    } else {
       /* point is empty, we have to manually write NaNs */
       *geom_buf.buf_coord++ = NAN;
       *geom_buf.buf_coord++ = NAN;

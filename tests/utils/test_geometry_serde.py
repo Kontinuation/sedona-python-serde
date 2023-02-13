@@ -15,6 +15,8 @@
 #  specific language governing permissions and limitations
 #  under the License.
 
+import pytest
+
 from shapely.geometry.base import BaseGeometry
 from sedona.utils import geometry_serde
 
@@ -29,6 +31,52 @@ from shapely.wkt import loads as wkt_loads
 
 
 class TestGeometrySerde:
+    @pytest.mark.parametrize("wkt", [
+        # empty geometries
+        'POINT EMPTY',
+        'LINESTRING EMPTY',
+        'POLYGON EMPTY',
+        'MULTIPOINT EMPTY',
+        'MULTILINESTRING EMPTY',
+        'MULTIPOLYGON EMPTY',
+        'GEOMETRYCOLLECTION EMPTY',
+        # non-empty geometries
+        'POINT (10 20)',
+        'POINT (10 20 30)',
+        'LINESTRING (10 20, 30 40)',
+        'LINESTRING (10 20 30, 40 50 60)',
+        'POLYGON ((10 10, 20 20, 20 10, 10 10))',
+        'POLYGON ((10 10 10, 20 20 10, 20 10 10, 10 10 10))',
+        'POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 2, 2 2, 2 1, 1 1))',
+        # non-empty multi geometries
+        'MULTIPOINT ((10 20), (30 40))',
+        'MULTIPOINT ((10 20 30), (40 50 60))',
+        'MULTILINESTRING ((10 20, 30 40), (50 60, 70 80))',
+        'MULTILINESTRING ((10 20 30, 40 50 60), (70 80 90, 100 110 120))',
+        'MULTIPOLYGON (((10 10, 20 20, 20 10, 10 10)), ((-10 -10, -20 -20, -20 -10, -10 -10)))',
+        'MULTIPOLYGON (((10 10, 20 20, 20 10, 10 10)), ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 2, 2 2, 2 1, 1 1)))',
+        'GEOMETRYCOLLECTION (POINT (10 20), LINESTRING (10 20, 30 40))',
+        'GEOMETRYCOLLECTION (POINT (10 20 30), LINESTRING (10 20 30, 40 50 60))',
+        'GEOMETRYCOLLECTION (POINT (10 20), LINESTRING (10 20, 30 40), POLYGON ((10 10, 20 20, 20 10, 10 10)))',
+        # nested geometry collection
+        'GEOMETRYCOLLECTION (GEOMETRYCOLLECTION (POINT (10 20), LINESTRING (10 20, 30 40)))',
+        'GEOMETRYCOLLECTION (POINT (1 2), GEOMETRYCOLLECTION (POINT (10 20), LINESTRING (10 20, 30 40)))',
+        # multi geometries containing empty geometries
+        'MULTIPOINT (EMPTY, (10 20))',
+        'MULTIPOINT (EMPTY, EMPTY)',
+        'MULTILINESTRING (EMPTY, (10 20, 30 40))',
+        'MULTILINESTRING (EMPTY, EMPTY)',
+        'MULTIPOLYGON (EMPTY, ((10 10, 20 20, 20 10, 10 10)))',
+        'MULTIPOLYGON (EMPTY, EMPTY)',
+        'GEOMETRYCOLLECTION (POINT (10 20), POINT EMPTY, LINESTRING (10 20, 30 40))',
+        'GEOMETRYCOLLECTION (MULTIPOINT EMPTY, MULTILINESTRING EMPTY, MULTIPOLYGON EMPTY, GEOMETRYCOLLECTION EMPTY)',
+    ])
+    def test_serde(self, wkt):
+        geom = wkt_loads(wkt)
+        buffer = geometry_serde.serialize(geom)
+        geom2, offset = geometry_serde.deserialize(buffer)
+        assert geom.equals_exact(geom2, 1e-6)
+
     def test_point(self):
         points = [
             wkt_loads("POINT EMPTY"),
