@@ -25,10 +25,12 @@
 #include "geos_c_dyn.h"
 
 static CoordinateType coordinate_type_of(int has_z, int has_m) {
-  /* libgeos currently do not support M dimensions, so we simply ignore
-   * has_m */
-  if (has_z) {
+  if (has_z && has_m) {
+    return XYZM;
+  } else if (has_z) {
     return XYZ;
+  } else if (has_m) {
+    return XYM;
   } else {
     return XY;
   }
@@ -45,32 +47,6 @@ static unsigned int get_bytes_per_coordinate(CoordinateType coord_type) {
     default:
       return 32;
   }
-}
-
-SedonaErrorCode get_coord_seq_info(GEOSContextHandle_t handle,
-                                   const GEOSCoordSequence *coord_seq,
-                                   CoordinateSequenceInfo *coord_seq_info) {
-  unsigned int dims = 0;
-  if (dyn_GEOSCoordSeq_getDimensions_r(handle, coord_seq, &dims) == 0) {
-    return SEDONA_GEOS_ERROR;
-  }
-  int has_z = (dims >= 3);
-  int has_m = 0; /* libgeos does not support M dimension for now */
-  CoordinateType coord_type = coordinate_type_of(has_z, has_m);
-  unsigned int bytes_per_coord = get_bytes_per_coordinate(coord_type);
-  unsigned int num_coords = 0;
-  if (dyn_GEOSCoordSeq_getSize_r(handle, coord_seq, &num_coords) == 0) {
-    return SEDONA_GEOS_ERROR;
-  }
-
-  coord_seq_info->dims = dims;
-  coord_seq_info->has_z = has_z;
-  coord_seq_info->has_m = has_m;
-  coord_seq_info->coord_type = coord_type;
-  coord_seq_info->bytes_per_coord = bytes_per_coord;
-  coord_seq_info->num_coords = num_coords;
-  coord_seq_info->total_bytes = bytes_per_coord * num_coords;
-  return SEDONA_SUCCESS;
 }
 
 SedonaErrorCode get_coord_seq_info_from_geom(
@@ -136,7 +112,6 @@ static SedonaErrorCode copy_coord_seq_to_buffer(
     return SEDONA_GEOS_ERROR;
   }
   for (unsigned int k = 0; k < num_coords; k++) {
-    /* libgeos does not support M dimension for now, so we ignore has_m. */
     if (has_z) {
       double x, y, z;
       if (dyn_GEOSCoordSeq_getXYZ_r(handle, coord_seq, k, &x, &y, &z) == 0) {
@@ -152,6 +127,11 @@ static SedonaErrorCode copy_coord_seq_to_buffer(
       }
       *buf++ = x;
       *buf++ = y;
+    }
+    if (has_m) {
+      /* XYZ/XYZM is not supported for now, just fill in 0 for M ordinate as a
+       * fallback value. */
+      *buf++ = 0;
     }
   }
   return SEDONA_SUCCESS;
@@ -178,17 +158,22 @@ static SedonaErrorCode copy_buffer_to_coord_seq(
     return SEDONA_GEOS_ERROR;
   }
   for (int k = 0; k < num_coords; k++) {
+    double x = *buf++;
+    double y = *buf++;
+    double z;
     if (has_z) {
-      double x = *buf++;
-      double y = *buf++;
-      double z = *buf++;
+      z = *buf++;
+    }
+    if (has_m) {
+      /* M ordinate is not supported for now, just skip it. */
+      buf++;
+    }
+    if (has_z) {
       if (dyn_GEOSCoordSeq_setXYZ_r(handle, coord_seq, k, x, y, z) == 0) {
         dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
         return SEDONA_GEOS_ERROR;
       }
     } else {
-      double x = *buf++;
-      double y = *buf++;
       if (dyn_GEOSCoordSeq_setXY_r(handle, coord_seq, k, x, y) == 0) {
         dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
         return SEDONA_GEOS_ERROR;
@@ -260,9 +245,9 @@ SedonaErrorCode read_geom_buf_header(const char *buf, int buf_size,
       return SEDONA_INCOMPLETE_BUFFER;
     }
 
-    int dims = (coord_type == XYZ ? 3 : 2);
-    int has_z = (coord_type == XYZ ? 1 : 0);
-    int has_m = 0;
+    int dims = bytes_per_coord / 8;
+    int has_z = ((coord_type == XYZ || coord_type == XYZM) ? 1 : 0);
+    int has_m = ((coord_type == XYM || coord_type == XYZM) ? 1 : 0);
     cs_info->bytes_per_coord = bytes_per_coord;
     cs_info->coord_type = coord_type;
     cs_info->num_coords = num_coords;

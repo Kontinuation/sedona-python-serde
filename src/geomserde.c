@@ -64,32 +64,30 @@ static SedonaErrorCode sedona_deserialize_point(GEOSContextHandle_t handle,
                                                 int srid, GeomBuffer *geom_buf,
                                                 CoordinateSequenceInfo *cs_info,
                                                 GEOSGeometry **p_geom) {
-  GEOSCoordSequence *coord_seq = NULL;
   GEOSGeometry *geom = NULL;
   if (cs_info->num_coords == 0) {
     geom = dyn_GEOSGeom_createEmptyPoint_r(handle);
   } else if (cs_info->dims == 2) {
+    /* fast path for 2D points */
     double x = *geom_buf->buf_coord++;
     double y = *geom_buf->buf_coord++;
     geom = dyn_GEOSGeom_createPointFromXY_r(handle, x, y);
   } else {
+    GEOSCoordSequence *coord_seq = NULL;
     SedonaErrorCode err =
         geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
     if (err != SEDONA_SUCCESS) {
       return err;
     }
     geom = dyn_GEOSGeom_createPoint_r(handle, coord_seq);
+    if (geom == NULL) {
+      dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
+      return SEDONA_GEOS_ERROR;
+    }
   }
 
-  if (geom != NULL) {
-    *p_geom = geom;
-    return SEDONA_SUCCESS;
-  } else {
-    if (coord_seq != NULL) {
-      dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
-    }
-    return SEDONA_GEOS_ERROR;
-  }
+  *p_geom = geom;
+  return SEDONA_SUCCESS;
 }
 
 static SedonaErrorCode sedona_serialize_linestring(
@@ -243,6 +241,9 @@ static SedonaErrorCode sedona_serialize_multipoint(
       if (cs_info->has_z) {
         *geom_buf.buf_coord++ = NAN;
       }
+      if (cs_info->has_m) {
+        *geom_buf.buf_coord++ = NAN;
+      }
     }
   }
 
@@ -267,7 +268,20 @@ static SedonaErrorCode sedona_deserialize_multipoint(
   SedonaErrorCode err = SEDONA_SUCCESS;
   for (int k = 0; k < num_points; k++) {
     GEOSGeometry *point = NULL;
-    if (cs_info->has_z) {
+    if (cs_info->dims == 2) {
+      /* fast path for 2D points. We can get rid of constructing a coordinate
+       * sequence object explicitly */
+      double x = *geom_buf->buf_coord++;
+      double y = *geom_buf->buf_coord++;
+      /* x and y will be NaN when serialized point was an empty point. GEOS
+       * will treat point with Nan ordinates as an empty point so we don't need
+       * to handle NaN specially. */
+      point = dyn_GEOSGeom_createPointFromXY_r(handle, x, y);
+      if (point == NULL) {
+        err = SEDONA_GEOS_ERROR;
+        goto handle_error;
+      }
+    } else {
       GEOSCoordSequence *coord_seq = NULL;
       cs_info->num_coords = 1;
       err = geom_buf_read_coords(geom_buf, handle, cs_info, &coord_seq);
@@ -277,17 +291,6 @@ static SedonaErrorCode sedona_deserialize_multipoint(
       point = dyn_GEOSGeom_createPoint_r(handle, coord_seq);
       if (point == NULL) {
         dyn_GEOSCoordSeq_destroy_r(handle, coord_seq);
-        err = SEDONA_GEOS_ERROR;
-        goto handle_error;
-      }
-    } else {
-      double x = *geom_buf->buf_coord++;
-      double y = *geom_buf->buf_coord++;
-      /* x and y will be NaN when serialized point was an empty point. GEOS
-       * will treat point with Nan ordinates as an empty point so we don't need
-       * to handle NaN specially. */
-      point = dyn_GEOSGeom_createPointFromXY_r(handle, x, y);
-      if (point == NULL) {
         err = SEDONA_GEOS_ERROR;
         goto handle_error;
       }

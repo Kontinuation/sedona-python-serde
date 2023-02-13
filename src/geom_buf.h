@@ -77,10 +77,6 @@ typedef struct GeomBuffer {
   int *buf_int_end;
 } GeomBuffer;
 
-SedonaErrorCode get_coord_seq_info(GEOSContextHandle_t handle,
-                                   const GEOSCoordSequence *coord_seq,
-                                   CoordinateSequenceInfo *coord_seq_info);
-
 SedonaErrorCode get_coord_seq_info_from_geom(
     GEOSContextHandle_t handle, const GEOSGeometry *geom,
     CoordinateSequenceInfo *coord_seq_info);
