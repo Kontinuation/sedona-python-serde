@@ -29,6 +29,16 @@ PyDoc_STRVAR(module_doc, "Geometry serialization/deserialization module.");
 
 #define ERR_MSG_BUF_SIZE 1024
 
+#ifdef __GNUC__
+# define thread_local __thread
+#elif __STDC_VERSION__ >= 201112L
+# define thread_local _Thread_local
+#elif defined(_MSC_VER)
+# define thread_local __declspec(thread)
+#else
+# error Cannot define thread_local
+#endif
+
 static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   PyObject *obj;
   char err_msg[ERR_MSG_BUF_SIZE];
@@ -61,8 +71,8 @@ static PyObject *load_libgeos_c(PyObject *self, PyObject *args) {
   return Py_None;
 }
 
-static _Thread_local GEOSContextHandle_t handle;
-static _Thread_local char *geos_err_msg;
+static thread_local GEOSContextHandle_t handle;
+static thread_local char *geos_err_msg;
 
 static void geos_msg_handler(const char *fmt, ...) {
   if (geos_err_msg == NULL) return;
@@ -214,7 +224,7 @@ static PyObject *deserialize(PyObject *self, PyObject *args) {
 
 static PyObject *serialize_1(PyObject *self, PyObject *args) {
   GEOSGeometry *geos_geom = NULL;
-  if (!PyArg_ParseTuple(args, "l", &geos_geom)) {
+  if (!PyArg_ParseTuple(args, "K", &geos_geom)) {
     return NULL;
   }
   return do_serialize(geos_geom);
@@ -233,7 +243,7 @@ static PyObject *deserialize_1(PyObject *self, PyObject *args) {
    * to get rid of the extra overhead introduced by ctypes. */
   int geom_type_id = dyn_GEOSGeomTypeId_r(handle, geom);
   char has_z = dyn_GEOSHasZ_r(handle, geom);
-  return Py_BuildValue("(libi)", geom, geom_type_id, has_z, length);
+  return Py_BuildValue("(Kibi)", geom, geom_type_id, has_z, length);
 }
 
 /* Module definition for Shapely 2.x */

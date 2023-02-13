@@ -186,7 +186,7 @@ static void geom_buf_init(GeomBuffer *geom_buf, void *buf,
                           int num_ints) {
   geom_buf->buf = buf;
   geom_buf->buf_size = 8 + num_coords * cs_info->bytes_per_coord + 4 * num_ints;
-  geom_buf->buf_coord = buf + 8;
+  geom_buf->buf_coord = (double *)buf + 1;
   geom_buf->buf_coord_end = geom_buf->buf_coord + num_coords * cs_info->dims;
   geom_buf->buf_int = (int *)geom_buf->buf_coord_end;
   geom_buf->buf_int_end = geom_buf->buf_int + num_ints;

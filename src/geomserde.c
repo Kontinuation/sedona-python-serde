@@ -19,8 +19,6 @@
 
 #include "geomserde.h"
 
-#include <stdio.h>
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -507,12 +505,12 @@ static SedonaErrorCode sedona_serialize_geometrycollection(
     return SEDONA_GEOS_ERROR;
   }
   int total_size = 8;
-  void *scratch = calloc(num_geoms, sizeof(char *) + sizeof(int));
+  unsigned char *scratch = calloc(num_geoms, sizeof(char *) + sizeof(int));
   if (scratch == NULL) {
     return SEDONA_ALLOC_ERROR;
   }
-  char **geom_bufs = scratch;
-  int *geom_buf_sizes = scratch + num_geoms * sizeof(char *);
+  char **geom_bufs = (char **) scratch;
+  int *geom_buf_sizes = (int *)(scratch + num_geoms * sizeof(char *));
   SedonaErrorCode err = SEDONA_SUCCESS;
 
   /* Serialize geometries individually */
@@ -742,7 +740,7 @@ SedonaErrorCode sedona_deserialize_geom(GEOSContextHandle_t handle,
     return err;
   }
 
-  *p_bytes_read = ((void *)geom_buf.buf_int - geom_buf.buf);
+  *p_bytes_read = (int)((unsigned char *)geom_buf.buf_int - (unsigned char *)geom_buf.buf);
   return SEDONA_SUCCESS;
 }
 
